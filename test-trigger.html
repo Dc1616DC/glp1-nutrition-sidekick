@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLP-1 Nutrition Sidekick - Test Meal Reminders</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .instructions {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0069d9;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+            white-space: pre-wrap;
+            min-height: 100px;
+        }
+        .user-info {
+            margin-bottom: 15px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>GLP-1 Nutrition Sidekick - Test Meal Reminders</h1>
+    
+    <div class="instructions">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Replace the Firebase configuration in the script with your project's configuration</li>
+            <li>Click "Sign In with Google" to authenticate</li>
+            <li>Once signed in, click "Trigger Meal Reminders" to test the Cloud Function</li>
+            <li>The results will appear in the box below</li>
+            <li>Check the browser console for any additional details or errors</li>
+        </ol>
+    </div>
+
+    <div class="container">
+        <div id="auth-container">
+            <div id="not-signed-in" class="auth-section">
+                <button id="sign-in-button">Sign In with Google</button>
+            </div>
+            <div id="signed-in" class="auth-section hidden">
+                <div class="user-info">
+                    Signed in as: <span id="user-email"></span>
+                </div>
+                <button id="sign-out-button">Sign Out</button>
+            </div>
+        </div>
+
+        <div id="function-container">
+            <button id="trigger-function" disabled>Trigger Meal Reminders</button>
+        </div>
+
+        <h3>Result:</h3>
+        <pre id="result">Results will appear here...</pre>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+
+    <script>
+        // Replace this with your Firebase project configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "glp-1-nutrition-sidekick.firebaseapp.com",
+            projectId: "glp-1-nutrition-sidekick",
+            storageBucket: "glp-1-nutrition-sidekick.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+
+        // DOM Elements
+        const signInButton = document.getElementById('sign-in-button');
+        const signOutButton = document.getElementById('sign-out-button');
+        const triggerFunctionButton = document.getElementById('trigger-function');
+        const userEmailElement = document.getElementById('user-email');
+        const resultElement = document.getElementById('result');
+        const notSignedInSection = document.getElementById('not-signed-in');
+        const signedInSection = document.getElementById('signed-in');
+
+        // Function to update UI based on auth state
+        function updateUI(user) {
+            if (user) {
+                // User is signed in
+                notSignedInSection.classList.add('hidden');
+                signedInSection.classList.remove('hidden');
+                userEmailElement.textContent = user.email || user.displayName || user.uid;
+                triggerFunctionButton.disabled = false;
+            } else {
+                // User is signed out
+                notSignedInSection.classList.remove('hidden');
+                signedInSection.classList.add('hidden');
+                userEmailElement.textContent = '';
+                triggerFunctionButton.disabled = true;
+                resultElement.textContent = 'Results will appear here...';
+            }
+        }
+
+        // Auth state observer
+        firebase.auth().onAuthStateChanged(updateUI);
+
+        // Sign in with Google
+        signInButton.addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider)
+                .catch(error => {
+                    console.error('Error signing in:', error);
+                    resultElement.textContent = `Error signing in: ${error.message}`;
+                });
+        });
+
+        // Sign out
+        signOutButton.addEventListener('click', () => {
+            firebase.auth().signOut()
+                .catch(error => {
+                    console.error('Error signing out:', error);
+                });
+        });
+
+        // Trigger the Cloud Function
+        triggerFunctionButton.addEventListener('click', async () => {
+            resultElement.textContent = 'Sending request...';
+            
+            try {
+                // Get the current user's ID token
+                const user = firebase.auth().currentUser;
+                if (!user) {
+                    resultElement.textContent = 'Error: Not signed in';
+                    return;
+                }
+                
+                const idToken = await user.getIdToken();
+                
+                // Call the Cloud Function with authentication
+                const functionUrl = 'https://us-central1-glp-1-nutrition-sidekick.cloudfunctions.net/triggerMealReminders';
+                
+                const response = await fetch(functionUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${idToken}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                resultElement.textContent = JSON.stringify(data, null, 2);
+                console.log('Function response:', data);
+            } catch (error) {
+                console.error('Error calling function:', error);
+                resultElement.textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "region": "us-central1",
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ],
+      "runtime": "nodejs20",
+      "cleanup": {
+        "strategy": "auto",
+        "maxDays": 14
+      },
+      "codebase": "default"
+    },
+    {
+      "source": "glp-1-nutrition-sidekick",
+      "codebase": "glp-1-nutrition-sidekick",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": []
+    }
+  ],
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "auth": {
+      "port": 9099
+    },
+    "pubsub": {
+      "port": 8085
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

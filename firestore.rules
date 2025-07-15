@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if the request is from an authenticated user
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if the user is accessing their own data
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    // Helper function to validate user profile data
+    function isValidUserProfile(data) {
+      return data.keys().hasOnly(['uid', 'email', 'tdee', 'targetCalories', 'proteinGoal', 
+                                 'dietaryRestrictions', 'mealPreferences', 'notificationSettings', 'fcmTokens']) &&
+             data.uid is string &&
+             data.email is string &&
+             (!('tdee' in data) || data.tdee is number) &&
+             (!('targetCalories' in data) || data.targetCalories is number) &&
+             (!('dietaryRestrictions' in data) || data.dietaryRestrictions is list) &&
+             (!('mealPreferences' in data) || data.mealPreferences is list) &&
+             (!('fcmTokens' in data) || data.fcmTokens is list);
+    }
+    
+    // User profiles - users can only read and write their own data
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+    
+    // Meals - all authenticated users can read, but only admins can write
+    match /meals/{mealId} {
+      allow read: if isSignedIn();
+      // Only allow writes from admin SDK or server (Firebase Functions)
+      allow write: if false; // Restrict direct writes - use Firebase Functions instead
+    }
+    
+    // Default deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

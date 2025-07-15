@@ -2,12 +2,18 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { getMeals, Meal } from '../../firebase/db';
+import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // For a novice developer: This is the main page for browsing meals.
 // It's a "client component" because it's interactive—it fetches data and
 // allows the user to filter results in real-time without a page reload.
 
 export default function MealsPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  
   // --- State Management ---
   // We use `useState` to hold data that can change over time and cause the page to re-render.
 
@@ -18,15 +24,25 @@ export default function MealsPage() {
   // State for our filters
   const [categoryFilter, setCategoryFilter] = useState<'All' | Meal['category']>('All');
   const [dietaryFilters, setDietaryFilters] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>(''); // NEW: text search
 
   const availableCategories: ('All' | Meal['category'])[] = ['All', 'Breakfast', 'Lunch', 'Dinner', 'Snack'];
   const availableDietaryTags = ['Vegetarian', 'Gluten-Free', 'Dairy-Free', 'Quick'];
 
   // --- Data Fetching ---
   // `useEffect` runs code after the component has rendered.
-  // With an empty dependency array `[]`, it runs only once when the component first mounts.
+  // We need to wait for authentication to complete before fetching meals
   useEffect(() => {
     const fetchMeals = async () => {
+      // Wait for auth to complete
+      if (authLoading) return;
+      
+      // Redirect to signin if not authenticated
+      if (!user) {
+        router.push('/signin?redirect=meals');
+        return;
+      }
+
       try {
         setLoading(true); // Start loading
         setError(null); // Clear previous errors
@@ -41,12 +57,14 @@ export default function MealsPage() {
     };
 
     fetchMeals();
-  }, []); // The empty array means this effect runs once on component mount.
+  }, [user, authLoading, router]); // Dependencies: user, authLoading, router
 
   // --- Filtering Logic ---
   // `useMemo` is a performance optimization hook. It re-calculates `filteredMeals`
   // only when one of its dependencies (`allMeals`, `categoryFilter`, `dietaryFilters`) changes.
   const filteredMeals = useMemo(() => {
+    // Basic, case-insensitive search helper
+    const term = searchTerm.trim().toLowerCase();
     return allMeals.filter(meal => {
       // 1. Category Filter Check
       const categoryMatch = categoryFilter === 'All' || meal.category === categoryFilter;
@@ -55,9 +73,15 @@ export default function MealsPage() {
       // `every` checks if ALL selected dietary filters are present in the meal's tags.
       const dietaryMatch = dietaryFilters.every(filter => meal.tags.includes(filter));
 
-      return categoryMatch && dietaryMatch;
+      // 3. Name / Ingredient search check
+      const textMatch =
+        term === '' ||
+        meal.name.toLowerCase().includes(term) ||
+        meal.ingredients.some(ing => ing.toLowerCase().includes(term));
+
+      return categoryMatch && dietaryMatch && textMatch;
     });
-  }, [allMeals, categoryFilter, dietaryFilters]);
+  }, [allMeals, categoryFilter, dietaryFilters, searchTerm]);
 
   // --- Event Handlers ---
   const handleDietaryFilterChange = (tag: string) => {
@@ -69,6 +93,24 @@ export default function MealsPage() {
   };
 
   // --- Render Logic ---
+  
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -86,6 +128,17 @@ export default function MealsPage() {
         >
           ✨ Get a Custom AI Meal Suggestion
         </button>
+      </div>
+
+      {/* Search Input */}
+      <div className="flex justify-center">
+        <input
+          type="text"
+          placeholder="Search meals by name or ingredient…"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          className="w-full max-w-xl px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+        />
       </div>
 
       {/* Filters Section */}
@@ -133,6 +186,12 @@ export default function MealsPage() {
 
       {/* Meal Display Section */}
       <div>
+        {/* Count indicator */}
+        {!loading && !error && (
+          <p className="text-sm text-gray-600 mb-4 text-center">
+            Showing {filteredMeals.length} of {allMeals.length} meals
+          </p>
+        )}
         {loading ? (
           <p className="text-center py-10">Loading meals...</p>
         ) : error ? (
@@ -140,7 +199,11 @@ export default function MealsPage() {
         ) : filteredMeals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMeals.map(meal => (
-              <div key={meal.id} className="bg-white rounded-lg shadow-lg overflow-hidden flex flex-col">
+              <Link
+                key={meal.id}
+                href={`/meals/${meal.id}`}
+                className="bg-white rounded-lg shadow-lg overflow-hidden flex flex-col hover:ring-2 hover:ring-[#4A90E2] transition"
+              >
                 <div className="p-6 flex-grow">
                   <p className="text-sm font-semibold text-[#4A90E2]">{meal.category}</p>
                   <h3 className="text-xl font-bold text-gray-800 mt-1">{meal.name}</h3>
@@ -164,7 +227,13 @@ export default function MealsPage() {
                     <p className="text-xs text-gray-500">Prep</p>
                   </div>
                 </div>
-              </div>
+                {/* View Details button */}
+                <div className="bg-white px-6 py-3 border-t text-center">
+                  <span className="inline-block px-4 py-2 text-sm font-medium text-white bg-[#4A90E2] rounded-md">
+                    View Details
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         ) : (
