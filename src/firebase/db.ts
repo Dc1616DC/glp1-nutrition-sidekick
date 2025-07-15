@@ -33,6 +33,11 @@ export interface UserProfile {
     afternoonSnack: string;
     dinner: string;
   };
+  /**
+   * Firebase Cloud Messaging tokens linked to the user’s devices.
+   * These are used to send push notifications for meal reminders.
+   */
+  fcmTokens?: string[]; // Array of FCM registration tokens
 }
 
 export interface Meal {
@@ -134,3 +139,32 @@ export const getMeals = async (): Promise<Meal[]> => {
 // Note for later: We will need a function to add meals to the database in bulk
 // when we import them from your Excel file. We can build that when we get to
 // the data import step.
+
+/**
+ * Fetches **one** meal document from Firestore by its ID.
+ *
+ * For a novice developer:
+ * Think of each meal in Firestore as a “file” in a folder called **meals**.
+ * Every file has a unique filename (its **document ID**).  
+ * This function goes to the **meals** folder, opens the file whose name matches
+ * the `mealId` you pass in, and returns its contents.
+ *
+ * @param {string} mealId – The Firestore document ID of the meal you want.
+ * @returns {Promise<Meal | null>} The meal data (including its ID) or `null`
+ *          if no meal with that ID exists.
+ */
+export const getMealById = async (mealId: string): Promise<Meal | null> => {
+  // Create a reference to the specific meal document
+  const mealDocRef = doc(db, "meals", mealId);
+
+  // Fetch the document snapshot
+  const mealSnap = await getDoc(mealDocRef);
+
+  if (mealSnap.exists()) {
+    // If it exists, merge its data with the ID field and return it
+    return { id: mealSnap.id, ...mealSnap.data() } as Meal;
+  }
+
+  // If not found, return null so the calling code can handle it
+  return null;
+};

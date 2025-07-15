@@ -2,6 +2,11 @@
 
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import MealReminders from '../components/MealReminders';
+import { useEffect } from 'react';
+import {
+  getNotificationPermissionState,
+} from '../services/simpleNotificationService';
 
 // For a novice developer: This is the homepage of your application.
 // It's a "client component" because its content changes based on whether a user is logged in.
@@ -9,6 +14,13 @@ import { useAuth } from '../context/AuthContext';
 export default function Home() {
   // We use our custom `useAuth` hook to get the current user and loading state.
   const { user, loading } = useAuth();
+
+  // Local notification permission check (no service worker registration)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    getNotificationPermissionState();
+  }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   const features = [
     {
@@ -46,6 +58,13 @@ export default function Home() {
           meal planning, personalized targets, and expert guidance.
         </p>
       </section>
+
+      {/* Meal Reminders for authenticated users */}
+      {!loading && user && (
+        <section className="my-8 px-4">
+          <MealReminders />
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="py-12 bg-gray-50 -mx-4 px-4">
