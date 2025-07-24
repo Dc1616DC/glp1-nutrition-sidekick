@@ -2,6 +2,8 @@ import { createHash } from 'crypto';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { RecipeIngredient } from '../types/recipe';
+import { nutritionValidationService } from './nutritionValidationService';
+import { unitConversionService } from './unitConversionService';
 
 // Rate limiting for Starter plan (disabled for local lookups)
 const RATE_LIMIT_DELAY = 1100; // 1.1 seconds between requests (under 1 req/sec)
@@ -16,6 +18,9 @@ interface NutritionData {
   fat: number;
   source: 'cache' | 'spoonacular' | 'usda-mirror' | 'conservative';
   timestamp?: number;
+  confidence?: 'high' | 'medium' | 'low';
+  warnings?: string[];
+  validations?: string[];
 }
 
 interface SpoonacularNutrient {
@@ -76,9 +81,9 @@ export class SpoonacularNutritionService {
     
     // Separate cached from uncached
     for (const result of cacheResults) {
-      if (result.found && 'nutrition' in result) {
+      if (result.found && 'nutrition' in result && result.nutrition) {
         results[result.index] = result.nutrition;
-      } else if (!result.found && 'ingredient' in result) {
+      } else if (!result.found && 'ingredient' in result && result.ingredient) {
         uncachedIngredients.push({ index: result.index, ingredient: result.ingredient });
       }
     }
@@ -107,7 +112,7 @@ export class SpoonacularNutritionService {
     );
 
     // Step 3: Use Spoonacular for ingredients not in our USDA database
-    if (stillNeededIngredients.length > 0) {
+    if (stillNeededIngredients.length > 0 && process.env.NODE_ENV === 'production') {
       console.log(`🌐 ${stillNeededIngredients.length} ingredients need Spoonacular lookup`);
       try {
         const batchResults = await this.batchSpoonacularLookup(
@@ -135,6 +140,12 @@ export class SpoonacularNutritionService {
           results[index] = conservativeNutrition;
         }
       }
+    } else if (stillNeededIngredients.length > 0) {
+      // Development mode: Use conservative estimates for missing ingredients
+      console.log(`🏠 Development mode: Using conservative estimates for ${stillNeededIngredients.length} ingredients`);
+      for (const { index, ingredient } of stillNeededIngredients) {
+        results[index] = this.getConservativeEstimate(ingredient);
+      }
     }
 
     // Fill any remaining gaps with conservative estimates
@@ -148,9 +159,9 @@ export class SpoonacularNutritionService {
   }
 
   /**
-   * Calculate total nutrition for all ingredients combined
+   * Calculate total nutrition for all ingredients combined with validation
    */
-  calculateTotalNutrition(nutritionData: NutritionData[]): NutritionData {
+  calculateTotalNutrition(nutritionData: NutritionData[], ingredients?: RecipeIngredient[]): NutritionData {
     const total = nutritionData.reduce(
       (sum, nutrition) => ({
         protein: sum.protein + nutrition.protein,
@@ -163,15 +174,66 @@ export class SpoonacularNutritionService {
       { protein: 0, fiber: 0, calories: 0, carbs: 0, fat: 0, source: 'calculated' as const }
     );
 
-    // Determine primary source
+    // Determine primary source and confidence
     const sources = nutritionData.map(n => n.source);
+    const confidences = nutritionData.map(n => n.confidence || 'high');
+    const allWarnings = nutritionData.flatMap(n => n.warnings || []);
+    const allValidations = nutritionData.flatMap(n => n.validations || []);
+    
     const primarySource = sources.includes('cache') || sources.includes('spoonacular') 
       ? 'spoonacular' 
       : sources.includes('usda-mirror') 
       ? 'usda-mirror' 
       : 'conservative';
+    
+    // Overall confidence is the lowest individual confidence
+    const overallConfidence = confidences.includes('low') ? 'low' : 
+                             confidences.includes('medium') ? 'medium' : 'high';
 
-    return { ...total, source: primarySource };
+    const result: NutritionData = { 
+      ...total, 
+      source: primarySource,
+      confidence: overallConfidence,
+      warnings: allWarnings.length > 0 ? allWarnings : undefined,
+      validations: allValidations.length > 0 ? allValidations : undefined,
+      timestamp: Date.now()
+    };
+    
+    // Validate the total meal if ingredients are provided
+    if (ingredients && ingredients.length > 0) {
+      console.log(`🍽️ Validating total meal nutrition: ${result.protein.toFixed(1)}g protein, ${result.calories.toFixed(0)} cal`);
+      
+      // Convert ingredients to contexts for validation
+      const ingredientContexts = ingredients.map(ing => {
+        const conversionResult = unitConversionService.convertToGrams(
+          ing.amount || 1, 
+          ing.unit || 'serving', 
+          ing.name
+        );
+        return {
+          name: ing.name,
+          amount: ing.amount || 1,
+          unit: ing.unit || 'serving',
+          gramWeight: conversionResult.grams
+        };
+      });
+      
+      const mealValidation = nutritionValidationService.validateMealNutrition(result, ingredientContexts);
+      
+      if (mealValidation.warnings.length > 0) {
+        result.validations = [...(result.validations || []), ...mealValidation.warnings];
+        if (mealValidation.confidence === 'low') {
+          result.confidence = 'low';
+        }
+      }
+      
+      console.log(`🍽️ Meal validation complete (confidence: ${result.confidence})`);
+      if (result.validations && result.validations.length > 0) {
+        console.warn('⚠️ Meal validation warnings:', result.validations);
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -187,10 +249,6 @@ export class SpoonacularNutritionService {
     ).join('\n');
 
     const url = `${this.baseUrl}/recipes/parseIngredients`;
-    const params = new URLSearchParams({
-      apiKey: this.apiKey,
-      includeNutrition: 'true'
-    });
 
     console.log(`🌐 Calling Spoonacular for ${ingredients.length} ingredients`);
 
@@ -248,6 +306,11 @@ export class SpoonacularNutritionService {
    * Get cached nutrition data
    */
   private async getCachedNutrition(cacheKey: string): Promise<NutritionData | null> {
+    // Skip cache lookups in development to avoid Firebase permission issues
+    if (process.env.NODE_ENV === 'development') {
+      return null;
+    }
+    
     try {
       const docRef = doc(db, 'nutritionCache', cacheKey);
       const docSnap = await getDoc(docRef);
@@ -273,6 +336,11 @@ export class SpoonacularNutritionService {
    * Cache nutrition data
    */
   private async cacheNutrition(cacheKey: string, nutrition: NutritionData): Promise<void> {
+    // Skip caching in development to avoid Firebase permission issues
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
+    
     try {
       const docRef = doc(db, 'nutritionCache', cacheKey);
       await setDoc(docRef, { 
@@ -324,71 +392,138 @@ export class SpoonacularNutritionService {
   }
 
   /**
-   * Look up ingredient in local USDA nutrition database
+   * Look up ingredient in local USDA nutrition database with validation
    */
   private getUSDANutrition(ingredient: RecipeIngredient): NutritionData | null {
     // Dynamic import to avoid top-level require
-    const { COMMON_NUTRITION_DATA, findClosestMatch, convertToGrams } = require('../data/commonNutrition') as {
-      COMMON_NUTRITION_DATA: Record<string, { protein: number; fiber: number; calories: number; carbs: number; fat: number }>;
-      findClosestMatch: (name: string) => string | null;
-      convertToGrams: (amount: number, unit: string) => number;
-    };
+    const { COMMON_NUTRITION_DATA, findClosestMatch } = require('../data/commonNutrition'); // eslint-disable-line @typescript-eslint/no-require-imports
     
     const matchedFood = findClosestMatch(ingredient.name);
     if (!matchedFood) {
       return null;
     }
     
-    const nutritionPer100g = COMMON_NUTRITION_DATA[matchedFood];
-    const amountInGrams = convertToGrams(ingredient.amount || 1, ingredient.unit || 'serving', ingredient.name);
-    const scale = amountInGrams / 100; // Scale from per-100g to actual amount
+    console.log(`🥗 USDA match found: ${ingredient.name} → ${matchedFood}`);
     
-    return {
+    const nutritionPer100g = COMMON_NUTRITION_DATA[matchedFood];
+    const conversionResult = unitConversionService.convertToGrams(
+      ingredient.amount || 1, 
+      ingredient.unit || 'serving', 
+      ingredient.name,
+      true
+    );
+    
+    const scale = conversionResult.grams / 100; // Scale from per-100g to actual amount
+    
+    const scaledNutrition: NutritionData = {
       protein: nutritionPer100g.protein * scale,
       fiber: nutritionPer100g.fiber * scale,
       calories: nutritionPer100g.calories * scale,
       carbs: nutritionPer100g.carbs * scale,
       fat: nutritionPer100g.fat * scale,
       source: 'usda-mirror',
+      confidence: conversionResult.confidence,
+      warnings: conversionResult.warnings.length > 0 ? conversionResult.warnings : undefined,
       timestamp: Date.now()
     };
+    
+    // Validate the result
+    const validation = nutritionValidationService.validateIngredientNutrition(scaledNutrition, {
+      name: ingredient.name,
+      amount: ingredient.amount || 1,
+      unit: ingredient.unit || 'serving',
+      gramWeight: conversionResult.grams
+    });
+    
+    // Add validation info to result
+    if (validation.warnings.length > 0) {
+      scaledNutrition.validations = validation.warnings;
+      if (validation.confidence === 'low') {
+        scaledNutrition.confidence = 'low';
+      }
+    }
+    
+    console.log(`🥗 USDA result: ${scaledNutrition.protein.toFixed(1)}g protein, ${scaledNutrition.calories.toFixed(0)} cal (confidence: ${scaledNutrition.confidence})`);
+    
+    return scaledNutrition;
   }
 
   /**
-   * Conservative nutrition estimates as last resort
+   * Conservative nutrition estimates as last resort with full validation
    */
   private getConservativeEstimate(ingredient: RecipeIngredient): NutritionData {
     const name = ingredient.name.toLowerCase();
     const amount = ingredient.amount || 1;
+    const unit = ingredient.unit || 'serving';
     
-    // More accurate estimates based on food types
+    console.log(`🔄 Getting conservative estimate for: ${amount} ${unit} ${name}`);
+    
+    // Use the new unified conversion service
+    const conversionResult = unitConversionService.convertToGrams(amount, unit, name, true);
+    const scale = conversionResult.grams / 100; // Scale from per-100g to actual amount
+    
+    // Log conversion details for debugging
+    console.log(`🔄 Conversion result: ${amount} ${unit} ${name} = ${conversionResult.grams}g (confidence: ${conversionResult.confidence})`);
+    if (conversionResult.warnings.length > 0) {
+      console.warn('⚠️ Conversion warnings:', conversionResult.warnings);
+    }
+    
+    let nutritionPer100g: { protein: number; fiber: number; calories: number; carbs: number; fat: number };
+    
+    // Use per-100g nutrition values and scale them properly
     if (name.includes('chicken') || name.includes('turkey')) {
-      return { protein: amount * 25, fiber: 0, calories: amount * 165, carbs: 0, fat: amount * 3.6, source: 'conservative' };
-    }
-    if (name.includes('salmon') || name.includes('tuna') || name.includes('fish')) {
-      return { protein: amount * 22, fiber: 0, calories: amount * 140, carbs: 0, fat: amount * 6, source: 'conservative' };
-    }
-    if (name.includes('shrimp')) {
-      return { protein: amount * 18, fiber: 0, calories: amount * 85, carbs: 1, fat: amount * 1, source: 'conservative' };
-    }
-    if (name.includes('egg')) {
-      return { protein: amount * 6, fiber: 0, calories: amount * 70, carbs: amount * 0.5, fat: amount * 5, source: 'conservative' };
-    }
-    if (name.includes('quinoa')) {
-      return { protein: amount * 4.4, fiber: amount * 2.8, calories: amount * 120, carbs: amount * 22, fat: amount * 1.9, source: 'conservative' };
-    }
-    if (name.includes('black beans') || name.includes('beans')) {
-      return { protein: amount * 15, fiber: amount * 15, calories: amount * 245, carbs: amount * 45, fat: amount * 1, source: 'conservative' };
-    }
-    if (name.includes('avocado')) {
-      return { protein: amount * 2, fiber: amount * 10, calories: amount * 160, carbs: amount * 9, fat: amount * 15, source: 'conservative' };
-    }
-    if (name.includes('spinach') || name.includes('kale') || name.includes('greens')) {
-      return { protein: amount * 3, fiber: amount * 2.2, calories: amount * 23, carbs: amount * 3.6, fat: amount * 0.4, source: 'conservative' };
+      nutritionPer100g = { protein: 27, fiber: 0, calories: 189, carbs: 0, fat: 8.3 }; // ground turkey
+    } else if (name.includes('salmon') || name.includes('tuna') || name.includes('fish')) {
+      nutritionPer100g = { protein: 25, fiber: 0, calories: 208, carbs: 0, fat: 12.4 }; // salmon
+    } else if (name.includes('shrimp')) {
+      nutritionPer100g = { protein: 18, fiber: 0, calories: 85, carbs: 0.9, fat: 0.5 };
+    } else if (name.includes('egg')) {
+      nutritionPer100g = { protein: 13, fiber: 0, calories: 155, carbs: 1.1, fat: 11 };
+    } else if (name.includes('quinoa')) {
+      nutritionPer100g = { protein: 4.4, fiber: 2.8, calories: 120, carbs: 22, fat: 1.9 }; // cooked
+    } else if (name.includes('black beans') || name.includes('beans')) {
+      nutritionPer100g = { protein: 8.9, fiber: 8.3, calories: 132, carbs: 23, fat: 0.5 };
+    } else if (name.includes('avocado')) {
+      nutritionPer100g = { protein: 2, fiber: 6.7, calories: 160, carbs: 8.5, fat: 14.7 };
+    } else if (name.includes('spinach') || name.includes('kale') || name.includes('greens')) {
+      nutritionPer100g = { protein: 2.9, fiber: 2.2, calories: 23, carbs: 3.6, fat: 0.4 };
+    } else {
+      // Generic fallback
+      nutritionPer100g = { protein: 5, fiber: 2, calories: 100, carbs: 15, fat: 3 };
     }
     
-    // Generic fallback - very conservative
-    return { protein: 2, fiber: 1, calories: 50, carbs: 8, fat: 2, source: 'conservative' };
+    // Scale nutrition values
+    const scaledNutrition: NutritionData = {
+      protein: nutritionPer100g.protein * scale,
+      fiber: nutritionPer100g.fiber * scale,
+      calories: nutritionPer100g.calories * scale,
+      carbs: nutritionPer100g.carbs * scale,
+      fat: nutritionPer100g.fat * scale,
+      source: 'conservative',
+      confidence: conversionResult.confidence,
+      warnings: conversionResult.warnings.length > 0 ? conversionResult.warnings : undefined,
+      timestamp: Date.now()
+    };
+    
+    // Validate the result
+    const validation = nutritionValidationService.validateIngredientNutrition(scaledNutrition, {
+      name: ingredient.name,
+      amount: amount,
+      unit: unit,
+      gramWeight: conversionResult.grams
+    });
+    
+    // Add validation info to result
+    if (validation.warnings.length > 0) {
+      scaledNutrition.validations = validation.warnings;
+      if (validation.confidence === 'low') {
+        scaledNutrition.confidence = 'low';
+      }
+    }
+    
+    console.log(`🍽️ Conservative estimate result: ${scaledNutrition.protein.toFixed(1)}g protein, ${scaledNutrition.calories.toFixed(0)} cal (confidence: ${scaledNutrition.confidence})`);
+    
+    return scaledNutrition;
   }
 }
 
