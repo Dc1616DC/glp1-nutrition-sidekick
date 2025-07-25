@@ -56,6 +56,11 @@ export const COMMON_NUTRITION_DATA: Record<string, {
   'avocado': { protein: 2, fiber: 6.7, calories: 160, carbs: 8.5, fat: 14.7 },
   'olive oil': { protein: 0, fiber: 0, calories: 884, carbs: 0, fat: 100 },
   'coconut oil': { protein: 0, fiber: 0, calories: 862, carbs: 0, fat: 99.1 },
+  'balsamic vinaigrette': { protein: 0.1, fiber: 0, calories: 88, carbs: 8.8, fat: 6.7 },
+  'vinaigrette': { protein: 0.1, fiber: 0, calories: 449, carbs: 3.9, fat: 49.8 },
+  'ranch dressing': { protein: 0.7, fiber: 0, calories: 431, carbs: 4.3, fat: 45.3 },
+  'dill': { protein: 3.5, fiber: 2.1, calories: 43, carbs: 7, fat: 1.1 },
+  'fresh dill': { protein: 3.5, fiber: 2.1, calories: 43, carbs: 7, fat: 1.1 },
   'nuts': { protein: 15, fiber: 8, calories: 550, carbs: 16, fat: 49 },
   'almonds': { protein: 21.2, fiber: 12.5, calories: 579, carbs: 21.6, fat: 49.9 },
   'walnuts': { protein: 15.2, fiber: 6.7, calories: 654, carbs: 13.7, fat: 65.2 },
@@ -180,7 +185,7 @@ export const COMMON_NUTRITION_DATA: Record<string, {
   'macadamia nuts': { protein: 7.9, fiber: 8.6, calories: 718, carbs: 13.8, fat: 75.8 },
   'pine nuts': { protein: 13.7, fiber: 3.7, calories: 673, carbs: 13.1, fat: 68.4 },
   'sunflower seeds': { protein: 20.8, fiber: 8.6, calories: 584, carbs: 20, fat: 51.5 },
-  'pumpkin seeds': { protein: 30.2, fiber: 6, calories: 559, carbs: 10.7, fat: 49 },
+  'pumpkin seeds': { protein: 19, fiber: 1.7, calories: 446, carbs: 54, fat: 19 },
   'chia seeds': { protein: 17, fiber: 34.4, calories: 486, carbs: 42.1, fat: 30.7 },
   'flax seeds': { protein: 18.3, fiber: 27.3, calories: 534, carbs: 28.9, fat: 42.2 },
   'hemp seeds': { protein: 31, fiber: 4, calories: 553, carbs: 8.7, fat: 48.8 },
@@ -525,12 +530,49 @@ export function findClosestMatch(ingredientName: string): string | null {
     return name;
   }
   
-  // Partial matches - check if ingredient name contains any of our known foods
+  // Split the ingredient name into words for better matching
+  const nameWords = name.split(/\s+/);
   const knownFoods = Object.keys(COMMON_NUTRITION_DATA);
   
+  // First, try to find exact food item matches within the ingredient name
   for (const food of knownFoods) {
-    if (name.includes(food) || food.includes(name)) {
+    const foodWords = food.split(/\s+/);
+    // Check if all words in the known food are present in the ingredient name
+    if (foodWords.every(word => nameWords.some(nameWord => nameWord.includes(word)))) {
       return food;
+    }
+  }
+  
+  // Second pass: check if ingredient name contains the known food as substring
+  for (const food of knownFoods) {
+    if (name.includes(food)) {
+      return food;
+    }
+  }
+  
+  // Third pass: check individual key words
+  const keyIngredients = ['salmon', 'chicken', 'turkey', 'beef', 'pork', 'shrimp', 'tuna', 'egg', 'tofu', 
+                          'quinoa', 'rice', 'beans', 'lentils', 'spinach', 'kale', 'broccoli'];
+  
+  for (const key of keyIngredients) {
+    if (nameWords.some(word => word.includes(key))) {
+      // Find the best match for this key ingredient
+      for (const food of knownFoods) {
+        if (food.includes(key)) {
+          // Prefer cooked versions when applicable
+          if (name.includes('cooked') && food.includes('cooked')) {
+            return food;
+          } else if (!name.includes('cooked') && !food.includes('cooked')) {
+            return food;
+          }
+        }
+      }
+      // If no perfect match, return any match with the key
+      for (const food of knownFoods) {
+        if (food.includes(key)) {
+          return food;
+        }
+      }
     }
   }
   
