@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GLP-1 Nutrition Sidekick - PWA Test</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4285f4">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="GLP-1 Nutrition Sidekick">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 0;
+      display: block;
+      width: 100%;
+    }
+    .card {
+      background-color: #f5f5f5;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+    h1 { color: #4285f4; }
+    .notification-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      max-width: 300px;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border-radius: 8px;
+      padding: 16px;
+      display: none;
+    }
+    .notification-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+    .notification-actions button {
+      flex: 1;
+      margin: 0 4px;
+      padding: 8px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>GLP-1 Nutrition Sidekick</h1>
+  <h2>PWA Test Page</h2>
+  
+  <div class="card">
+    <h3>PWA Installation</h3>
+    <p>This page can be installed as a Progressive Web App.</p>
+    <button id="install-btn" style="display:none;">Install App</button>
+  </div>
+  
+  <div class="card">
+    <h3>Notification Test</h3>
+    <p>Test the notification system:</p>
+    <button id="notification-btn">Show Test Notification</button>
+    <button id="schedule-btn">Schedule Notification (30s)</button>
+  </div>
+  
+  <div class="card">
+    <h3>Offline Support</h3>
+    <p>Test offline functionality:</p>
+    <button id="cache-btn">Cache Current Page</button>
+    <p>After caching, turn off your network and reload the page.</p>
+  </div>
+  
+  <div class="notification-container" id="in-app-notification">
+    <h4>Meal Reminder</h4>
+    <p>Time for your scheduled meal!</p>
+    <div class="notification-actions">
+      <button id="eaten-btn">I ate</button>
+      <button id="snooze-btn">Remind later</button>
+    </div>
+  </div>
+  
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registered with scope:', registration.scope);
+          })
+          .catch(err => {
+            console.error('Service Worker registration failed:', err);
+          });
+      });
+    }
+    
+    // Handle installation
+    let deferredPrompt;
+    const installBtn = document.getElementById('install-btn');
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+    
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User ${outcome} the installation`);
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    });
+    
+    // Handle notifications
+    const notificationBtn = document.getElementById('notification-btn');
+    const scheduleBtn = document.getElementById('schedule-btn');
+    const inAppNotification = document.getElementById('in-app-notification');
+    const eatenBtn = document.getElementById('eaten-btn');
+    const snoozeBtn = document.getElementById('snooze-btn');
+    
+    async function requestNotificationPermission() {
+      if (!('Notification' in window)) {
+        alert('This browser does not support notifications');
+        return false;
+      }
+      
+      if (Notification.permission === 'granted') {
+        return true;
+      }
+      
+      if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        return permission === 'granted';
+      }
+      
+      return false;
+    }
+    
+    notificationBtn.addEventListener('click', async () => {
+      const hasPermission = await requestNotificationPermission();
+      
+      if (hasPermission) {
+        // Show in-app notification
+        inAppNotification.style.display = 'block';
+        setTimeout(() => {
+          inAppNotification.style.display = 'none';
+        }, 10000);
+        
+        // Show system notification
+        const registration = await navigator.serviceWorker.ready;
+        registration.showNotification('Meal Reminder', {
+          body: 'Time for your scheduled meal!',
+          icon: '/icon-192.jpg',
+          badge: '/badge-72.jpg',
+          requireInteraction: true,
+          actions: [
+            { action: 'eaten', title: '✅ I ate' },
+            { action: 'snooze', title: '⏰ Remind later' }
+          ]
+        });
+      }
+    });
+    
+    scheduleBtn.addEventListener('click', async () => {
+      const hasPermission = await requestNotificationPermission();
+      
+      if (hasPermission) {
+        alert('Notification scheduled for 30 seconds from now');
+        setTimeout(async () => {
+          const registration = await navigator.serviceWorker.ready;
+          registration.showNotification('Scheduled Meal Reminder', {
+            body: 'Your scheduled meal reminder is now due!',
+            icon: '/icon-192.jpg',
+            badge: '/badge-72.jpg',
+            requireInteraction: true,
+            actions: [
+              { action: 'eaten', title: '✅ I ate' },
+              { action: 'snooze', title: '⏰ Remind later' }
+            ],
+            sound: '/sounds/gentle-chime.wav'
+          });
+        }, 30000);
+      }
+    });
+    
+    eatenBtn.addEventListener('click', () => {
+      inAppNotification.style.display = 'none';
+      alert('Meal marked as eaten!');
+    });
+    
+    snoozeBtn.addEventListener('click', () => {
+      inAppNotification.style.display = 'none';
+      alert('Reminder snoozed for 15 minutes');
+    });
+    
+    // Handle caching
+    const cacheBtn = document.getElementById('cache-btn');
+    
+    cacheBtn.addEventListener('click', async () => {
+      if ('caches' in window) {
+        try {
+          const cache = await caches.open('glp1-nutrition-sidekick-v1');
+          await cache.add('/test-pwa.html');
+          await cache.add('/manifest.json');
+          alert('Current page cached successfully! You can now test offline mode.');
+        } catch (err) {
+          console.error('Caching failed:', err);
+          alert('Caching failed: ' + err.message);
+        }
+      } else {
+        alert('Cache API not supported in this browser');
+      }
+    });
+  </script>
+</body>
+</html>

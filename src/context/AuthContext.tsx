@@ -38,14 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // in the user's login state. It's the perfect tool for this job.
     // It runs once when it's set up, and then again every time a user signs in or out.
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // User is signed in.
-        setUser(user);
-      } else {
-        // User is signed out.
-        setUser(null);
-      }
-      // Once we've checked the auth state, we are no longer loading.
+      setUser(user);
       setLoading(false);
     });
 
@@ -61,11 +54,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // We render the AuthContext.Provider and pass the user and loading state to it.
   // The `children` prop represents all the components that this provider will wrap.
-  // We show a loading message while Firebase is checking the auth status to prevent
-  // the app from flickering between a "logged out" and "logged in" state.
+  // Only show loading for the initial auth check, not on subsequent changes
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={value}>
-      {loading ? <div>Loading...</div> : children}
+      {children}
     </AuthContext.Provider>
   );
 };

@@ -46,3 +46,4 @@ src/scripts/serviceAccountKey.json
 .Trashes
 ehthumbs.db
 Thumbs.db
+.vercel

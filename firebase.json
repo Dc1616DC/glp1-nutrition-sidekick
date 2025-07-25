@@ -26,6 +26,31 @@
       "predeploy": []
     }
   ],
+  "hosting": {
+    "public": "out",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/sw.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  },
   "emulators": {
     "functions": {
       "port": 5001
@@ -42,6 +67,9 @@
     },
     "pubsub": {
       "port": 8085
+    },
+    "hosting": {
+      "port": 5000
     }
   },
   "firestore": {

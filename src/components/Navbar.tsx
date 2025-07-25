@@ -23,6 +23,7 @@ export default function Navbar() {
     { href: '/', label: 'Home' },
     { href: '/calculator', label: 'Calculator' },
     { href: '/meals', label: 'Meals' },
+    { href: '/meal-generator', label: 'AI Meal Generator' },
     { href: '/education', label: 'Education' },
     { href: '/reminders', label: 'Meal Reminders' }, // Point to dashboard that works with medical system
   ];

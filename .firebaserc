@@ -1,0 +1,11 @@
+{
+  "projects": {
+    "default": "glp-1-nutrition-sidekick",
+    "nutrition": "glp-1-nutrition-sidekick"
+  },
+  "targets": {},
+  "etags": {},
+  "regions": [
+    "us-east4"
+  ]
+}

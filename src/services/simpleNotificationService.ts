@@ -71,7 +71,12 @@ export const requestNotificationPermission = async (userId: string): Promise<{
   }
   
   try {
-    // Request permission from the browser
+    // Only request permission if user hasn't already denied it
+    if (Notification.permission === 'denied') {
+      return { status: 'denied' };
+    }
+    
+    // Request permission from the browser (must be in user gesture context)
     console.log('[SimpleNotificationService] Requesting Notification permission');
     const permission = await Notification.requestPermission();
     console.log(`[SimpleNotificationService] Browser permission result: ${permission}`);

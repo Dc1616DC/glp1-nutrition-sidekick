@@ -1,0 +1,11 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+        <stop offset="100%" style="stop-color:#065f46;stop-opacity:1" />
+      </linearGradient>
+    </defs>
+    <rect width="192" height="192" rx="19.2" ry="19.2" fill="url(#grad)"/>
+    <text x="50%" y="40%" text-anchor="middle" fill="white" font-size="32" font-family="Arial, sans-serif" font-weight="bold">GLP</text>
+    <text x="50%" y="65%" text-anchor="middle" fill="white" font-size="24" font-family="Arial, sans-serif" font-weight="bold">SIDEKICK</text>
+  </svg>

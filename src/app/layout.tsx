@@ -5,6 +5,12 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 // Application-wide navigation bar
 import Navbar from "../components/Navbar";
+// PWA install prompt
+import PWAInstallPrompt from "../components/PWAInstallPrompt";
+// PWA status indicator
+import PWAStatus from "../components/PWAStatus";
+// Service worker registration
+import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,9 +23,30 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GLP-1 Nutrition Companion",
-  description:
-    "AI-powered meal planning, nutrition calculator, and educational support for GLP-1 medication users.",
+  title: "GLP-1 Nutrition Sidekick",
+  description: "Smart meal reminders for GLP-1 users with cross-browser notification support",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "GLP-1 Sidekick",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  userScalable: false,
+  themeColor: "#059669",
 };
 
 export default function RootLayout({
@@ -29,19 +56,26 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      {/* PWA manifest and theme color */}
       <head>
+        <meta name="theme-color" content="#059669" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="GLP-1 Sidekick" />
         <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icon-192.svg" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {/* Provide authentication context to the entire app */}
         <AuthProvider>
+          <ServiceWorkerRegistration />
+          <PWAStatus />
           <Navbar />
           <main className="mx-auto max-w-7xl p-4">
             {children}
           </main>
+          <PWAInstallPrompt />
         </AuthProvider>
       </body>
     </html>

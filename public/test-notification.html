@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLP-1 Notification System Test</title>
+    <meta name="theme-color" content="#4A90E2">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        :root {
+            --primary: #2c7be5;
+            --danger: #e63757;
+            --success: #00d97e;
+            --warning: #f6c343;
+            --dark: #12263f;
+            --light: #f9fbfd;
+            --border: #edf2f9;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.5;
+            color: var(--dark);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        h1 {
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+        
+        .col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 300px;
+        }
+        
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #1a68d1;
+        }
+        
+        button:disabled {
+            background-color: #95aac9;
+            cursor: not-allowed;
+        }
+        
+        button.danger {
+            background-color: var(--danger);
+        }
+        
+        button.danger:hover {
+            background-color: #c52b48;
+        }
+        
+        button.success {
+            background-color: var(--success);
+        }
+        
+        button.success:hover {
+            background-color: #00b368;
+        }
+        
+        button.warning {
+            background-color: var(--warning);
+        }
+        
+        button.warning:hover {
+            background-color: #d9aa36;
+        }
+        
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .status.success {
+            background-color: rgba(0, 217, 126, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(0, 217, 126, 0.2);
+        }
+        
+        .status.warning {
+            background-color: rgba(246, 195, 67, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(246, 195, 67, 0.2);
+        }
+        
+        .status.danger {
+            background-color: rgba(230, 55, 87, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(230, 55, 87, 0.2);
+        }
+        
+        .status.info {
+            background-color: rgba(44, 123, 229, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(44, 123, 229, 0.2);
+        }
+        
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        .log-container {
+            background-color: #12263f;
+            color: #f9fbfd;
+            border-radius: 4px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 10px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            word-wrap: break-word;
+        }
+        
+        .log-entry.info {
+            color: #2c7be5;
+        }
+        
+        .log-entry.success {
+            color: #00d97e;
+        }
+        
+        .log-entry.warning {
+            color: #f6c343;
+        }
+        
+        .log-entry.error {
+            color: #e63757;
+        }
+        
+        .timestamp {
+            color: #95aac9;
+            margin-right: 5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+        
+        .badge.sw {
+            background-color: #6e84a3;
+            color: white;
+        }
+        
+        .badge.notif {
+            background-color: #2c7be5;
+            color: white;
+        }
+        
+        .badge.perm {
+            background-color: #00d97e;
+            color: white;
+        }
+        
+        .badge.error {
+            background-color: #e63757;
+            color: white;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>GLP-1 Notification System Test</h1>
+    
+    <div class="card">
+        <h2>System Status</h2>
+        <div id="serviceWorkerStatus" class="status warning">Service Worker: Checking...</div>
+        <div id="notificationStatus" class="status warning">Notifications: Checking...</div>
+        <div id="permissionStatus" class="status warning">Permission: Checking...</div>
+        
+        <button id="requestPermission" class="success">Request Notification Permission</button>
+        <button id="registerServiceWorker" class="success">Register Service Worker</button>
+        <button id="unregisterServiceWorker" class="danger">Unregister Service Worker</button>
+        <button id="clearLogs" class="warning">Clear Logs</button>
+    </div>
+    
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <h2>Test Immediate Notification</h2>
+                <button id="testBasicNotification" class="success">Send Basic Notification</button>
+                <button id="testActionNotification" class="success">Send Notification with Actions</button>
+                <button id="testCriticalNotification" class="danger">Send Critical Notification</button>
+            </div>
+            
+            <div class="card">
+                <h2>Test Scheduled Notification</h2>
+                <div>
+                    <label for="delaySeconds">Delay (seconds):</label>
+                    <input type="number" id="delaySeconds" value="10" min="5" max="300">
+                </div>
+                <button id="scheduleNotification" class="success">Schedule Notification</button>
+                <button id="schedulePrepActionPair" class="success">Schedule Prep+Action Pair</button>
+            </div>
+        </div>
+        
+        <div class="col">
+            <div class="card">
+                <h2>Debug Console</h2>
+                <div class="log-container" id="logContainer"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Notification Response</h2>
+        <div id="notificationResponse" class="hidden">
+            <h3>Last Notification Action:</h3>
+            <pre id="responseData"></pre>
+        </div>
+        <p id="noResponse">No notification responses yet.</p>
+    </div>
+    
+    <script>
+        // Debug logging system
+        const DEBUG = true;
+        const logContainer = document.getElementById('logContainer');
+        
+        function log(message, type = 'info', tag = '') {
+            if (!DEBUG) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            
+            let tagHtml = '';
+            if (tag) {
+                tagHtml = `<span class="badge ${tag}">${tag}</span>`;
+            }
+            
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span>${tagHtml} ${message}`;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Also log to console
+            console.log(`[${timestamp}] [${tag}] ${message}`);
+        }
+        
+        // Status elements
+        const serviceWorkerStatus = document.getElementById('serviceWorkerStatus');
+        const notificationStatus = document.getElementById('notificationStatus');
+        const permissionStatus = document.getElementById('permissionStatus');
+        
+        // Buttons
+        const requestPermissionBtn = document.getElementById('requestPermission');
+        const registerServiceWorkerBtn = document.getElementById('registerServiceWorker');
+        const unregisterServiceWorkerBtn = document.getElementById('unregisterServiceWorker');
+        const clearLogsBtn = document.getElementById('clearLogs');
+        const testBasicNotificationBtn = document.getElementById('testBasicNotification');
+        const testActionNotificationBtn = document.getElementById('testActionNotification');
+        const testCriticalNotificationBtn = document.getElementById('testCriticalNotification');
+        const scheduleNotificationBtn = document.getElementById('scheduleNotification');
+        const schedulePrepActionPairBtn = document.getElementById('schedulePrepActionPair');
+        
+        // Response elements
+        const notificationResponse = document.getElementById('notificationResponse');
+        const responseData = document.getElementById('responseData');
+        const noResponse = document.getElementById('noResponse');
+        
+        // Service Worker registration
+        let swRegistration = null;
+        
+        // Check Service Worker support
+        if ('serviceWorker' in navigator) {
+            log('Service Worker API is supported', 'success', 'sw');
+            notificationStatus.className = 'status info';
+            notificationStatus.textContent = 'Notifications: Supported';
+            
+            // Check for existing registrations
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                if (registrations.length > 0) {
+                    log(`Found ${registrations.length} existing service worker registration(s)`, 'info', 'sw');
+                    swRegistration = registrations[0];
+                    updateServiceWorkerStatus(true);
+                } else {
+                    log('No existing service worker registrations found', 'warning', 'sw');
+                    updateServiceWorkerStatus(false);
+                }
+            }).catch(error => {
+                log(`Error checking service worker registrations: ${error.message}`, 'error', 'sw');
+                updateServiceWorkerStatus(false);
+            });
+            
+            // Listen for service worker controller changes
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                log('Service Worker controller changed', 'info', 'sw');
+            });
+            
+            // Listen for messages from service worker
+            navigator.serviceWorker.addEventListener('message', event => {
+                log(`Received message from Service Worker: ${JSON.stringify(event.data)}`, 'info', 'sw');
+                
+                if (event.data && event.data.type) {
+                    showNotificationResponse(event.data);
+                }
+            });
+        } else {
+            log('Service Worker API is not supported', 'error', 'sw');
+            serviceWorkerStatus.className = 'status danger';
+            serviceWorkerStatus.textContent = 'Service Worker: Not Supported';
+            notificationStatus.className = 'status danger';
+            notificationStatus.textContent = 'Notifications: Not Supported';
+            disableButtons();
+        }
+        
+        // Check Notification support
+        if ('Notification' in window) {
+            log('Notification API is supported', 'success', 'notif');
+            notificationStatus.className = 'status success';
+            notificationStatus.textContent = 'Notifications: Supported';
+            
+            // Check permission
+            checkNotificationPermission();
+        } else {
+            log('Notification API is not supported', 'error', 'notif');
+            notificationStatus.className = 'status danger';
+            notificationStatus.textContent = 'Notifications: Not Supported';
+            disableButtons();
+        }
+        
+        // Register Service Worker
+        registerServiceWorkerBtn.addEventListener('click', async () => {
+            try {
+                log('Registering service worker...', 'info', 'sw');
+                swRegistration = await navigator.serviceWorker.register('/sw.js', {
+                    scope: '/',
+                    updateViaCache: 'none'
+                });
+                
+                log('Service Worker registered successfully', 'success', 'sw');
+                updateServiceWorkerStatus(true);
+                
+                if (swRegistration.installing) {
+                    log('Service Worker is installing, waiting for it to become active', 'info', 'sw');
+                    swRegistration.installing.addEventListener('statechange', event => {
+                        log(`Service Worker state changed to: ${event.target.state}`, 'info', 'sw');
+                        if (event.target.state === 'activated') {
+                            log('Service Worker is now active', 'success', 'sw');
+                        }
+                    });
+                } else if (swRegistration.waiting) {
+                    log('Service Worker is waiting', 'warning', 'sw');
+                } else if (swRegistration.active) {
+                    log('Service Worker is active', 'success', 'sw');
+                }
+            } catch (error) {
+                log(`Service Worker registration failed: ${error.message}`, 'error', 'sw');
+                updateServiceWorkerStatus(false);
+            }
+        });
+        
+        // Unregister Service Worker
+        unregisterServiceWorkerBtn.addEventListener('click', async () => {
+            if (!swRegistration) {
+                log('No Service Worker registration to unregister', 'warning', 'sw');
+                return;
+            }
+            
+            try {
+                const result = await swRegistration.unregister();
+                if (result) {
+                    log('Service Worker unregistered successfully', 'success', 'sw');
+                    swRegistration = null;
+                    updateServiceWorkerStatus(false);
+                } else {
+                    log('Service Worker unregistration failed', 'error', 'sw');
+                }
+            } catch (error) {
+                log(`Error unregistering Service Worker: ${error.message}`, 'error', 'sw');
+            }
+        });
+        
+        // Request Notification Permission
+        requestPermissionBtn.addEventListener('click', async () => {
+            try {
+                log('Requesting notification permission...', 'info', 'perm');
+                const permission = await Notification.requestPermission();
+                log(`Notification permission result: ${permission}`, 'info', 'perm');
+                checkNotificationPermission();
+            } catch (error) {
+                log(`Error requesting permission: ${error.message}`, 'error', 'perm');
+            }
+        });
+        
+        // Test Basic Notification
+        testBasicNotificationBtn.addEventListener('click', () => {
+            if (!checkRequirements()) return;
+            
+            log('Sending basic notification...', 'info', 'notif');
+            
+            const options = {
+                body: 'This is a test notification from GLP-1 Notification System',
+                icon: '/icon-192.jpg',
+                badge: '/badge-72.jpg',
+                tag: 'test-notification',
+                timestamp: Date.now(),
+                data: {
+                    type: 'test',
+                    time: new Date().toISOString()
+                }
+            };
+            
+            swRegistration.showNotification('Test Notification', options)
+                .then(() => {
+                    log('Basic notification sent successfully', 'success', 'notif');
+                })
+                .catch(error => {
+                    log(`Error sending notification: ${error.message}`, 'error', 'notif');
+                });
+        });
+        
+        // Test Notification with Actions
+        testActionNotificationBtn.addEventListener('click', () => {
+            if (!checkRequirements()) return;
+            
+            log('Sending notification with actions...', 'info', 'notif');
+            
+            const options = {
+                body: 'This notification has action buttons you can click',
+                icon: '/icon-192.jpg',
+                badge: '/badge-72.jpg',
+                tag: 'action-notification',
+                requireInteraction: true,
+                actions: [
+                    {
+                        action: 'eaten',
+                        title: 'I ate',
+                        icon: '/check-icon.jpg'
+                    },
+                    {
+                        action: 'snooze',
+                        title: 'Remind later',
+                        icon: '/snooze-icon.jpg'
+                    },
+                    {
+                        action: 'skip',
+                        title: 'Skip',
+                        icon: '/skip-icon.jpg'
+                    }
+                ],
+                data: {
+                    type: 'action-test',
+                    time: new Date().toISOString(),
+                    reminderId: `test-${Date.now()}`
+                }
+            };
+            
+            swRegistration.showNotification('Meal Reminder', options)
+                .then(() => {
+                    log('Action notification sent successfully', 'success', 'notif');
+                })
+                .catch(error => {
+                    log(`Error sending notification: ${error.message}`, 'error', 'notif');
+                });
+        });
+        
+        // Test Critical Notification
+        testCriticalNotificationBtn.addEventListener('click', () => {
+            if (!checkRequirements()) return;
+            
+            log('Sending critical notification...', 'info', 'notif');
+            
+            const options = {
+                body: 'This is a critical notification that requires attention',
+                icon: '/icon-192.jpg',
+                badge: '/badge-urgent.jpg',
+                tag: 'critical-notification',
+                requireInteraction: true,
+                vibrate: [300, 100, 300, 100, 300, 100, 600, 100, 600, 100, 600],
+                actions: [
+                    {
+                        action: 'acknowledge',
+                        title: 'Acknowledge',
+                        icon: '/check-icon.jpg'
+                    },
+                    {
+                        action: 'emergency',
+                        title: 'Need Help',
+                        icon: '/help-icon.jpg'
+                    }
+                ],
+                data: {
+                    type: 'critical-test',
+                    time: new Date().toISOString(),
+                    urgency: 'high',
+                    reminderId: `critical-${Date.now()}`
+                }
+            };
+            
+            swRegistration.showNotification('CRITICAL: Medical Alert', options)
+                .then(() => {
+                    log('Critical notification sent successfully', 'success', 'notif');
+                })
+                .catch(error => {
+                    log(`Error sending notification: ${error.message}`, 'error', 'notif');
+                });
+        });
+        
+        // Schedule Notification
+        scheduleNotificationBtn.addEventListener('click', () => {
+            if (!checkRequirements()) return;
+            
+            const delaySeconds = parseInt(document.getElementById('delaySeconds').value, 10);
+            if (isNaN(delaySeconds) || delaySeconds < 5) {
+                log('Delay must be at least 5 seconds', 'warning', 'notif');
+                return;
+            }
+            
+            const scheduledTime = new Date(Date.now() + (delaySeconds * 1000));
+            log(`Scheduling notification for ${scheduledTime.toLocaleTimeString()} (${delaySeconds} seconds from now)`, 'info', 'notif');
+            
+            // Schedule via setTimeout (browser-based scheduling)
+            setTimeout(() => {
+                if (!swRegistration) {
+                    log('Service Worker not available for scheduled notification', 'error', 'notif');
+                    return;
+                }
+                
+                const options = {
+                    body: `This notification was scheduled ${delaySeconds} seconds ago`,
+                    icon: '/icon-192.jpg',
+                    badge: '/badge-72.jpg',
+                    tag: 'scheduled-notification',
+                    data: {
+                        type: 'scheduled',
+                        scheduledAt: new Date().toISOString(),
+                        delaySeconds
+                    }
+                };
+                
+                swRegistration.showNotification('Scheduled Notification', options)
+                    .then(() => {
+                        log('Scheduled notification sent successfully', 'success', 'notif');
+                    })
+                    .catch(error => {
+                        log(`Error sending scheduled notification: ${error.message}`, 'error', 'notif');
+                    });
+            }, delaySeconds * 1000);
+            
+            // Also register with service worker for more reliable delivery
+            if (navigator.serviceWorker.controller) {
+                const reminderId = `scheduled-${Date.now()}`;
+                const reminderTime = new Date(Date.now() + (delaySeconds * 1000));
+                
+                const reminder = {
+                    id: reminderId,
+                    mealType: 'Test Meal',
+                    scheduledTime: reminderTime.toISOString(),
+                    reminderTime: reminderTime.toISOString(),
+                    reminderType: 'action',
+                    isCritical: false,
+                    status: 'scheduled',
+                    createdAt: new Date().toISOString()
+                };
+                
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'REGISTER_REMINDERS',
+                    actionReminder: reminder
+                });
+                
+                log('Registered scheduled reminder with Service Worker', 'success', 'sw');
+            } else {
+                log('Service Worker controller not available, using only setTimeout', 'warning', 'sw');
+            }
+        });
+        
+        // Schedule Prep+Action Pair
+        schedulePrepActionPairBtn.addEventListener('click', () => {
+            if (!checkRequirements()) return;
+            
+            const delaySeconds = parseInt(document.getElementById('delaySeconds').value, 10);
+            if (isNaN(delaySeconds) || delaySeconds < 5) {
+                log('Delay must be at least 5 seconds', 'warning', 'notif');
+                return;
+            }
+            
+            // Calculate times for prep (now + 5s) and action (now + delaySeconds)
+            const prepTime = new Date(Date.now() + 5000);
+            const actionTime = new Date(Date.now() + (delaySeconds * 1000));
+            
+            log(`Scheduling prep notification for ${prepTime.toLocaleTimeString()} (5 seconds from now)`, 'info', 'notif');
+            log(`Scheduling action notification for ${actionTime.toLocaleTimeString()} (${delaySeconds} seconds from now)`, 'info', 'notif');
+            
+            // Generate unique IDs for both reminders
+            const baseId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+            const prepReminderId = `prep-${baseId}`;
+            const actionReminderId = `action-${baseId}`;
+            
+            // Create reminder objects
+            const prepReminder = {
+                id: prepReminderId,
+                mealType: 'Test Meal',
+                scheduledTime: actionTime.toISOString(),
+                reminderTime: prepTime.toISOString(),
+                reminderType: 'prep',
+                isCritical: false,
+                status: 'scheduled',
+                createdAt: new Date().toISOString(),
+                relatedReminderId: actionReminderId
+            };
+            
+            const actionReminder = {
+                id: actionReminderId,
+                mealType: 'Test Meal',
+                scheduledTime: actionTime.toISOString(),
+                reminderTime: actionTime.toISOString(),
+                reminderType: 'action',
+                isCritical: false,
+                status: 'scheduled',
+                createdAt: new Date().toISOString(),
+                relatedReminderId: prepReminderId
+            };
+            
+            // Register with service worker for reliable delivery
+            if (navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({
+                    type: 'REGISTER_REMINDERS',
+                    prepReminder,
+                    actionReminder
+                });
+                
+                log('Registered prep+action reminder pair with Service Worker', 'success', 'sw');
+            } else {
+                log('Service Worker controller not available, using setTimeout fallback', 'warning', 'sw');
+                
+                // Prep reminder (setTimeout fallback)
+                setTimeout(() => {
+                    if (!swRegistration) return;
+                    
+                    const options = {
+                        body: 'Prepare for your test meal in a few seconds',
+                        icon: '/icon-192.jpg',
+                        badge: '/badge-72.jpg',
+                        tag: `meal-reminder-${prepReminderId}`,
+                        data: {
+                            reminderId: prepReminderId,
+                            mealType: 'Test Meal',
+                            reminderType: 'prep',
+                            isCritical: false
+                        },
+                        actions: [
+                            { action: 'acknowledge', title: 'OK', icon: '/check-icon.jpg' }
+                        ]
+                    };
+                    
+                    swRegistration.showNotification('Test Meal Coming Up', options)
+                        .then(() => {
+                            log('Prep notification sent successfully', 'success', 'notif');
+                        })
+                        .catch(error => {
+                            log(`Error sending prep notification: ${error.message}`, 'error', 'notif');
+                        });
+                }, 5000);
+                
+                // Action reminder (setTimeout fallback)
+                setTimeout(() => {
+                    if (!swRegistration) return;
+                    
+                    const options = {
+                        body: 'It\'s time for your test meal now',
+                        icon: '/icon-192.jpg',
+                        badge: '/badge-72.jpg',
+                        tag: `meal-reminder-${actionReminderId}`,
+                        requireInteraction: true,
+                        data: {
+                            reminderId: actionReminderId,
+                            mealType: 'Test Meal',
+                            reminderType: 'action',
+                            isCritical: false
+                        },
+                        actions: [
+                            { action: 'eaten', title: 'I ate', icon: '/check-icon.jpg' },
+                            { action: 'snooze', title: 'Remind later', icon: '/snooze-icon.jpg' },
+                            { action: 'skip', title: 'Skip', icon: '/skip-icon.jpg' }
+                        ]
+                    };
+                    
+                    swRegistration.showNotification('Test Meal Time', options)
+                        .then(() => {
+                            log('Action notification sent successfully', 'success', 'notif');
+                        })
+                        .catch(error => {
+                            log(`Error sending action notification: ${error.message}`, 'error', 'notif');
+                        });
+                }, delaySeconds * 1000);
+            }
+        });
+        
+        // Clear logs
+        clearLogsBtn.addEventListener('click', () => {
+            logContainer.innerHTML = '';
+            log('Logs cleared', 'info');
+        });
+        
+        // Helper functions
+        function checkNotificationPermission() {
+            const permission = Notification.permission;
+            log(`Current notification permission: ${permission}`, 'info', 'perm');
+            
+            if (permission === 'granted') {
+                permissionStatus.className = 'status success';
+                permissionStatus.textContent = 'Permission: Granted';
+                requestPermissionBtn.disabled = true;
+            } else if (permission === 'denied') {
+                permissionStatus.className = 'status danger';
+                permissionStatus.textContent = 'Permission: Denied';
+                disableNotificationButtons();
+            } else {
+                permissionStatus.className = 'status warning';
+                permissionStatus.textContent = 'Permission: Not Requested';
+                requestPermissionBtn.disabled = false;
+                disableNotificationButtons();
+            }
+            
+            return permission === 'granted';
+        }
+        
+        function updateServiceWorkerStatus(registered) {
+            if (registered) {
+                serviceWorkerStatus.className = 'status success';
+                serviceWorkerStatus.textContent = 'Service Worker: Registered';
+                registerServiceWorkerBtn.disabled = true;
+                unregisterServiceWorkerBtn.disabled = false;
+            } else {
+                serviceWorkerStatus.className = 'status warning';
+                serviceWorkerStatus.textContent = 'Service Worker: Not Registered';
+                registerServiceWorkerBtn.disabled = false;
+                unregisterServiceWorkerBtn.disabled = true;
+                disableNotificationButtons();
+            }
+        }
+        
+        function disableButtons() {
+            requestPermissionBtn.disabled = true;
+            registerServiceWorkerBtn.disabled = true;
+            unregisterServiceWorkerBtn.disabled = true;
+            disableNotificationButtons();
+        }
+        
+        function disableNotificationButtons() {
+            testBasicNotificationBtn.disabled = true;
+            testActionNotificationBtn.disabled = true;
+            testCriticalNotificationBtn.disabled = true;
+            scheduleNotificationBtn.disabled = true;
+            schedulePrepActionPairBtn.disabled = true;
+        }
+        
+        function enableNotificationButtons() {
+            testBasicNotificationBtn.disabled = false;
+            testActionNotificationBtn.disabled = false;
+            testCriticalNotificationBtn.disabled = false;
+            scheduleNotificationBtn.disabled = false;
+            schedulePrepActionPairBtn.disabled = false;
+        }
+        
+        function checkRequirements() {
+            if (!swRegistration) {
+                log('Service Worker not registered. Please register the Service Worker first.', 'error', 'sw');
+                return false;
+            }
+            
+            if (Notification.permission !== 'granted') {
+                log('Notification permission not granted. Please request permission first.', 'error', 'perm');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function showNotificationResponse(data) {
+            notificationResponse.classList.remove('hidden');
+            noResponse.classList.add('hidden');
+            responseData.textContent = JSON.stringify(data, null, 2);
+        }
+        
+        // Initial setup
+        log('Notification test page loaded', 'info');
+        
+        // Enable notification buttons if requirements are met
+        if (swRegistration && Notification.permission === 'granted') {
+            enableNotificationButtons();
+        }
+    </script>
+</body>
+</html>
