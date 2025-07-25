@@ -395,57 +395,64 @@ export class SpoonacularNutritionService {
    * Look up ingredient in local USDA nutrition database with validation
    */
   private getUSDANutrition(ingredient: RecipeIngredient): NutritionData | null {
-    // Dynamic import to avoid top-level require
-    const { COMMON_NUTRITION_DATA, findClosestMatch } = require('../data/commonNutrition'); // eslint-disable-line @typescript-eslint/no-require-imports
-    
-    const matchedFood = findClosestMatch(ingredient.name);
-    if (!matchedFood) {
+    try {
+      // Import USDA nutrition data
+      const { COMMON_NUTRITION_DATA, findClosestMatch } = require('../data/commonNutrition'); // eslint-disable-line @typescript-eslint/no-require-imports
+      
+      const matchedFood = findClosestMatch(ingredient.name);
+      if (!matchedFood) {
+        console.log(`❌ No USDA match found for: ${ingredient.name}`);
+        return null;
+      }
+      
+      console.log(`🥗 USDA match found: ${ingredient.name} → ${matchedFood}`);
+      
+      const nutritionPer100g = COMMON_NUTRITION_DATA[matchedFood];
+      const conversionResult = unitConversionService.convertToGrams(
+        ingredient.amount || 1, 
+        ingredient.unit || 'serving', 
+        ingredient.name,
+        true
+      );
+      
+      const scale = conversionResult.grams / 100; // Scale from per-100g to actual amount
+      
+      const scaledNutrition: NutritionData = {
+        protein: nutritionPer100g.protein * scale,
+        fiber: nutritionPer100g.fiber * scale,
+        calories: nutritionPer100g.calories * scale,
+        carbs: nutritionPer100g.carbs * scale,
+        fat: nutritionPer100g.fat * scale,
+        source: 'usda-mirror',
+        confidence: conversionResult.confidence,
+        warnings: conversionResult.warnings.length > 0 ? conversionResult.warnings : undefined,
+        timestamp: Date.now()
+      };
+      
+      // Validate the result
+      const validation = nutritionValidationService.validateIngredientNutrition(scaledNutrition, {
+        name: ingredient.name,
+        amount: ingredient.amount || 1,
+        unit: ingredient.unit || 'serving',
+        gramWeight: conversionResult.grams
+      });
+      
+      // Add validation info to result
+      if (validation.warnings.length > 0) {
+        scaledNutrition.validations = validation.warnings;
+        if (validation.confidence === 'low') {
+          scaledNutrition.confidence = 'low';
+        }
+      }
+      
+      console.log(`🥗 USDA result: ${scaledNutrition.protein.toFixed(1)}g protein, ${scaledNutrition.calories.toFixed(0)} cal (confidence: ${scaledNutrition.confidence})`);
+      
+      return scaledNutrition;
+      
+    } catch (error) {
+      console.error(`❌ USDA nutrition lookup failed for ${ingredient.name}:`, error);
       return null;
     }
-    
-    console.log(`🥗 USDA match found: ${ingredient.name} → ${matchedFood}`);
-    
-    const nutritionPer100g = COMMON_NUTRITION_DATA[matchedFood];
-    const conversionResult = unitConversionService.convertToGrams(
-      ingredient.amount || 1, 
-      ingredient.unit || 'serving', 
-      ingredient.name,
-      true
-    );
-    
-    const scale = conversionResult.grams / 100; // Scale from per-100g to actual amount
-    
-    const scaledNutrition: NutritionData = {
-      protein: nutritionPer100g.protein * scale,
-      fiber: nutritionPer100g.fiber * scale,
-      calories: nutritionPer100g.calories * scale,
-      carbs: nutritionPer100g.carbs * scale,
-      fat: nutritionPer100g.fat * scale,
-      source: 'usda-mirror',
-      confidence: conversionResult.confidence,
-      warnings: conversionResult.warnings.length > 0 ? conversionResult.warnings : undefined,
-      timestamp: Date.now()
-    };
-    
-    // Validate the result
-    const validation = nutritionValidationService.validateIngredientNutrition(scaledNutrition, {
-      name: ingredient.name,
-      amount: ingredient.amount || 1,
-      unit: ingredient.unit || 'serving',
-      gramWeight: conversionResult.grams
-    });
-    
-    // Add validation info to result
-    if (validation.warnings.length > 0) {
-      scaledNutrition.validations = validation.warnings;
-      if (validation.confidence === 'low') {
-        scaledNutrition.confidence = 'low';
-      }
-    }
-    
-    console.log(`🥗 USDA result: ${scaledNutrition.protein.toFixed(1)}g protein, ${scaledNutrition.calories.toFixed(0)} cal (confidence: ${scaledNutrition.confidence})`);
-    
-    return scaledNutrition;
   }
 
   /**
