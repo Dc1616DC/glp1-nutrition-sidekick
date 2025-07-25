@@ -137,7 +137,7 @@ export default function AIMealGenerator() {
     setIsGenerating(true);
     
     try {
-      const response = await fetch('/api/generate-meal-options', {
+      const response = await fetch('/api/generate-meal-options-new', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,26 +165,30 @@ export default function AIMealGenerator() {
 
       const data = await response.json();
       
-      if (data.error) {
+      if (!data.success) {
         throw new Error(data.error || 'Failed to generate meals');
       }
       
-      // Handle multiple meals response from Spoonacular API
+      // Handle multiple meals response from new hybrid system
       const meals = data.meals || [];
       
-      // Add source indicator based on the API response
+      // Add source indicator to show it's from the new hybrid system  
       meals.forEach((meal: GeneratedMeal) => {
-        meal.nutritionSource = data.fallback ? 'Fallback Recipes' : 'Spoonacular API';
+        meal.nutritionSource = data.source === 'grok+spoonacular' ? 'Grok AI + Spoonacular Nutrition' : 
+                              data.source === 'grok+usda' ? 'Grok AI + USDA Nutrition' :
+                              data.source === 'curated' ? 'Curated Recipes' : 'AI Generated';
       });
       
       setGeneratedMeals(meals);
       setSelectedMealIndex(0); // Default to first meal
       
       // Show user feedback about the generation source
-      if (data.fallback) {
-        console.log('ℹ️ Using fallback recipes due to API limits - still GLP-1 optimized!');
-      } else {
-        console.log('✅ Generated fresh meals from Spoonacular API');
+      if (data.source === 'grok+spoonacular') {
+        console.log('✅ Generated with Grok AI + Spoonacular nutrition data for accuracy');
+      } else if (data.source === 'grok+usda') {
+        console.log('✅ Generated with Grok AI + USDA nutrition data for maximum accuracy');
+      } else if (data.fallback) {
+        console.log('ℹ️ Using curated recipes as fallback - still GLP-1 optimized!');
       }
       
       // Add generated meal names to history for variety

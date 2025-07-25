@@ -44,8 +44,8 @@ export class GLP1MealReminderSystem {
     try {
       this._debug('Initializing GLP1MealReminderSystem...');
 
-      // Request notification permission
-      await requestNotificationPermission();
+      // Check notification permission (don't auto-request)
+      // User must explicitly request permission via the UI
 
       // Register service worker for advanced notification features
       await this._registerServiceWorker();
