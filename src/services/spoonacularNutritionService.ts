@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { RecipeIngredient } from '../types/recipe';
 import { nutritionValidationService } from './nutritionValidationService';
 import { unitConversionService } from './unitConversionService';
+import { COMMON_NUTRITION_DATA, findClosestMatch } from '../data/commonNutrition';
 
 // Rate limiting for Starter plan (disabled for local lookups)
 const RATE_LIMIT_DELAY = 1100; // 1.1 seconds between requests (under 1 req/sec)
@@ -396,9 +397,6 @@ export class SpoonacularNutritionService {
    */
   private getUSDANutrition(ingredient: RecipeIngredient): NutritionData | null {
     try {
-      // Import USDA nutrition data
-      const { COMMON_NUTRITION_DATA, findClosestMatch } = require('../data/commonNutrition'); // eslint-disable-line @typescript-eslint/no-require-imports
-      
       const matchedFood = findClosestMatch(ingredient.name);
       if (!matchedFood) {
         console.log(`❌ No USDA match found for: ${ingredient.name}`);
@@ -408,6 +406,10 @@ export class SpoonacularNutritionService {
       console.log(`🥗 USDA match found: ${ingredient.name} → ${matchedFood}`);
       
       const nutritionPer100g = COMMON_NUTRITION_DATA[matchedFood];
+      if (!nutritionPer100g) {
+        console.log(`❌ No nutrition data found for matched food: ${matchedFood}`);
+        return null;
+      }
       const conversionResult = unitConversionService.convertToGrams(
         ingredient.amount || 1, 
         ingredient.unit || 'serving', 
