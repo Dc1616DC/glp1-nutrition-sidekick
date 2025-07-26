@@ -172,10 +172,9 @@ export default function AIMealGenerator() {
       // Handle multiple meals response from new hybrid system
       const meals = data.meals || [];
       
-      // Add source indicator to show it's from the new hybrid system  
+      // Add source indicator to show it's from Grok's nutrition estimates
       meals.forEach((meal: GeneratedMeal) => {
-        meal.nutritionSource = data.source === 'grok+spoonacular' ? 'Grok AI + Spoonacular Nutrition' : 
-                              data.source === 'grok+usda' ? 'Grok AI + USDA Nutrition' :
+        meal.nutritionSource = data.source === 'grok+nutrition' ? 'Grok AI Nutrition Estimates' : 
                               data.source === 'curated' ? 'Curated Recipes' : 'AI Generated';
       });
       
@@ -183,10 +182,8 @@ export default function AIMealGenerator() {
       setSelectedMealIndex(0); // Default to first meal
       
       // Show user feedback about the generation source
-      if (data.source === 'grok+spoonacular') {
-        console.log('✅ Generated with Grok AI + Spoonacular nutrition data for accuracy');
-      } else if (data.source === 'grok+usda') {
-        console.log('✅ Generated with Grok AI + USDA nutrition data for maximum accuracy');
+      if (data.source === 'grok+nutrition') {
+        console.log('✅ Generated with Grok AI nutrition estimates (no external API needed!)');
       } else if (data.fallback) {
         console.log('ℹ️ Using curated recipes as fallback - still GLP-1 optimized!');
       }
