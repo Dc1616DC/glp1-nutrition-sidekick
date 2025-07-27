@@ -663,6 +663,9 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   );
 
   const renderActivitySelection = () => {
+    // Get emotion-specific suggestions
+    const emotionalSuggestions = getActivitySuggestions();
+    
     const commonActivities = [
       {
         category: 'Comfort',
