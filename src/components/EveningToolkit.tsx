@@ -187,6 +187,22 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   const [timerActive, setTimerActive] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
   const [showTooltip, setShowTooltip] = useState<string | null>(null);
+  
+  // Breathing exercise state
+  const [breathingStep, setBreathingStep] = useState<'intro' | 'active' | 'complete'>('intro');
+  const [currentPhase, setCurrentPhase] = useState<'inhale' | 'hold1' | 'exhale' | 'hold2'>('inhale');
+  const [cycleCount, setCycleCount] = useState(0);
+  
+  // Journaling state
+  const [journalEntry, setJournalEntry] = useState('');
+  
+  // Reset breathing exercise state when leaving the breathing step
+  useEffect(() => {
+    if (currentStep !== 'breathing-exercise') {
+      setBreathingStep('intro');
+      setCycleCount(0);
+    }
+  }, [currentStep]);
 
   // Component for context tooltips
   const ContextTooltip = ({ text, id }: { text: string; id: string }) => (
@@ -575,7 +591,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
         </button>
 
         <button
-          onClick={() => setCurrentStep('reflection')}
+          onClick={() => setCurrentStep('timer')}
           className="w-full p-4 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 transition-all text-left"
         >
           <div className="flex items-start space-x-3">
@@ -593,7 +609,6 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   );
 
   const renderJournaling = () => {
-    const [journalEntry, setJournalEntry] = useState('');
     
     return (
       <div className="space-y-6">
@@ -624,14 +639,14 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
           <button
             onClick={() => {
               setCheckInData(prev => ({ ...prev, reflectionNotes: journalEntry }));
-              setCurrentStep('reflection');
+              setCurrentStep('timer');
             }}
             className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium"
           >
             Continue to Reflection
           </button>
           <button
-            onClick={() => setCurrentStep('reflection')}
+            onClick={() => setCurrentStep('timer')}
             className="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
           >
             Skip Journaling
@@ -642,9 +657,6 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   };
 
   const renderBreathingExercise = () => {
-    const [breathingStep, setBreathingStep] = useState<'intro' | 'active' | 'complete'>('intro');
-    const [currentPhase, setCurrentPhase] = useState<'inhale' | 'hold1' | 'exhale' | 'hold2'>('inhale');
-    const [cycleCount, setCycleCount] = useState(0);
     
     useEffect(() => {
       if (breathingStep === 'active') {
@@ -749,15 +761,16 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
         
         <div className="space-y-3">
           <button
-            onClick={() => setCurrentStep('reflection')}
+            onClick={() => setCurrentStep('timer')}
             className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium"
           >
-            Continue to Reflection
+            Continue to Timer
           </button>
           <button
             onClick={() => {
               setBreathingStep('intro');
               setCycleCount(0);
+              setCurrentPhase('inhale');
             }}
             className="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
           >
