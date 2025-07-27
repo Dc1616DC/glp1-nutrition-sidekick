@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import MealReminders from '../components/MealReminders';
 import NutritionOnboarding from '../components/NutritionOnboarding';
 import EveningToolkit from '../components/EveningToolkit';
+import EveningToolkitFollowUp from '../components/EveningToolkitFollowUp';
 import { useEffect, useState } from 'react';
 import {
   getNotificationPermissionState,
@@ -18,6 +19,7 @@ export default function Home() {
   const { user, loading } = useAuth();
   const [showNutritionOnboarding, setShowNutritionOnboarding] = useState(false);
   const [showEveningToolkit, setShowEveningToolkit] = useState(false);
+  const [showFollowUp, setShowFollowUp] = useState(false);
 
   // Local notification permission check (no service worker registration)
   useEffect(() => {
@@ -30,6 +32,24 @@ export default function Home() {
       if (!hasSeenOnboarding) {
         // Show onboarding after a brief delay for better UX
         setTimeout(() => setShowNutritionOnboarding(true), 1500);
+      }
+    }
+
+    // Check for pending follow-up (highest priority)
+    const followUpData = localStorage.getItem('eveningToolkitFollowUpData');
+    if (followUpData && user) {
+      try {
+        const data = JSON.parse(followUpData);
+        const now = Date.now();
+        const scheduledTime = data.scheduledFor;
+        
+        // Show follow-up if it's time and not completed
+        if (!data.completed && now >= scheduledTime && now <= scheduledTime + (2 * 60 * 60 * 1000)) { // Within 2 hours of scheduled time
+          setTimeout(() => setShowFollowUp(true), 2000);
+          return; // Don't show other modals if follow-up is pending
+        }
+      } catch (e) {
+        console.error('Error parsing follow-up data:', e);
       }
     }
 
@@ -163,6 +183,33 @@ export default function Home() {
           onSkip={() => {
             setShowEveningToolkit(false);
             localStorage.setItem('eveningToolkitLastShown', new Date().toDateString());
+          }}
+        />
+      )}
+
+      {/* Evening Toolkit Follow-up Modal */}
+      {showFollowUp && (
+        <EveningToolkitFollowUp
+          onComplete={() => {
+            setShowFollowUp(false);
+            // Clean up follow-up data
+            localStorage.removeItem('eveningToolkitFollowUpScheduled');
+          }}
+          onSkip={() => {
+            setShowFollowUp(false);
+            // Mark as completed to prevent showing again
+            const followUpData = localStorage.getItem('eveningToolkitFollowUpData');
+            if (followUpData) {
+              try {
+                const data = JSON.parse(followUpData);
+                localStorage.setItem('eveningToolkitFollowUpData', JSON.stringify({
+                  ...data,
+                  completed: true
+                }));
+              } catch (e) {
+                console.error('Error updating follow-up data:', e);
+              }
+            }
           }}
         />
       )}

@@ -39,9 +39,17 @@ export default function SettingsPage() {
     return history.slice(-10); // Show last 10 check-ins
   };
 
+  const getFollowUpHistory = () => {
+    const followUps = JSON.parse(localStorage.getItem('eveningToolkitFollowUps') || '[]');
+    return followUps.slice(-5); // Show last 5 follow-ups
+  };
+
   const clearToolkitHistory = () => {
     localStorage.removeItem('eveningToolkitHistory');
     localStorage.removeItem('eveningToolkitLastShown');
+    localStorage.removeItem('eveningToolkitFollowUps');
+    localStorage.removeItem('eveningToolkitFollowUpData');
+    localStorage.removeItem('eveningToolkitFollowUpScheduled');
   };
 
   if (!user) {
@@ -56,6 +64,7 @@ export default function SettingsPage() {
   }
 
   const history = getToolkitHistory();
+  const followUpHistory = getFollowUpHistory();
 
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-8">
@@ -98,6 +107,7 @@ export default function SettingsPage() {
                 <li>• Suggests activities based on your current state</li>
                 <li>• Includes a 10-minute mindful break timer</li>
                 <li>• Tracks patterns to help build awareness</li>
+                <li>• Follow-up check-in 30 minutes later for reflection</li>
               </ul>
             </div>
 
@@ -144,6 +154,33 @@ export default function SettingsPage() {
                       Activity: {entry.selectedActivity.title}
                     </div>
                   )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {followUpHistory.length > 0 && (
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h3 className="font-medium text-gray-900 mb-4">Recent Follow-up Reflections</h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {followUpHistory.map((followUp: any, index: number) => (
+                <div key={index} className="text-sm bg-purple-50 p-3 rounded border border-purple-200">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-medium text-purple-800">
+                        Feeling: {followUp.currentFeeling?.replace('-', ' ') || 'Not specified'}
+                      </span>
+                      {followUp.reflection && (
+                        <div className="text-purple-700 mt-1 text-xs">
+                          "{followUp.reflection.substring(0, 60)}{followUp.reflection.length > 60 ? '...' : ''}"
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-purple-600 text-xs">
+                      {new Date(followUp.followUpTime).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

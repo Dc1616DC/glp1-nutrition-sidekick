@@ -432,6 +432,41 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
     const existingData = JSON.parse(localStorage.getItem('eveningToolkitHistory') || '[]');
     existingData.push(checkInData);
     localStorage.setItem('eveningToolkitHistory', JSON.stringify(existingData));
+    
+    // Schedule 30-minute follow-up
+    scheduleFollowUp();
+  };
+
+  const scheduleFollowUp = () => {
+    const followUpTime = Date.now() + (30 * 60 * 1000); // 30 minutes from now
+    localStorage.setItem('eveningToolkitFollowUpScheduled', followUpTime.toString());
+    localStorage.setItem('eveningToolkitFollowUpData', JSON.stringify({
+      originalCheckIn: checkInData,
+      scheduledFor: followUpTime,
+      completed: false
+    }));
+
+    // Set a timeout for 30 minutes (if user stays in app)
+    setTimeout(() => {
+      showFollowUpNotification();
+    }, 30 * 60 * 1000);
+
+    // Also try to schedule a browser notification (if permissions granted)
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setTimeout(() => {
+        new Notification('Evening Toolkit Check-in', {
+          body: 'How are you feeling now? Take a moment to reflect on your evening experience.',
+          icon: '/icon-192.png',
+          tag: 'evening-toolkit-followup'
+        });
+      }, 30 * 60 * 1000);
+    }
+  };
+
+  const showFollowUpNotification = () => {
+    // This would show an in-app notification/modal
+    // For now, we'll just console.log - could be expanded to show a gentle modal
+    console.log('Time for your evening toolkit follow-up reflection!');
   };
 
   const handleComplete = () => {
