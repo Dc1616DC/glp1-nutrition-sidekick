@@ -31,7 +31,191 @@ interface CheckInData {
 }
 
 const ACTIVITY_SUGGESTIONS: Record<string, ActivitySuggestion[]> = {
-  stressed: [
+  'stressed': [
+    {
+      category: 'Relaxation',
+      title: 'Guided Breathing Exercise',
+      description: 'Try a simple 4-7-8 breathing pattern to activate your body\'s relaxation response.',
+      duration: '5-10 minutes',
+      icon: '🫁'
+    },
+    {
+      category: 'Movement',
+      title: 'Gentle Stretching',
+      description: 'Release physical tension with neck rolls, shoulder shrugs, or light yoga.',
+      duration: '10 minutes',
+      icon: '🧘‍♀️'
+    },
+    {
+      category: 'Creative',
+      title: 'Journal Writing',
+      description: 'Write about what\'s on your mind. Sometimes getting thoughts on paper helps.',
+      duration: '10-15 minutes',
+      icon: '📝'
+    }
+  ],
+  'bored': [
+    {
+      category: 'Engaging',
+      title: 'Call a Friend',
+      description: 'Reach out to someone you haven\'t talked to in a while.',
+      duration: '15-20 minutes',
+      icon: '📱'
+    },
+    {
+      category: 'Creative',
+      title: 'Doodle or Color',
+      description: 'Grab paper and let your mind wander through simple drawing.',
+      duration: '10-15 minutes',
+      icon: '🎨'
+    },
+    {
+      category: 'Learning',
+      title: 'Watch Educational Video',
+      description: 'Learn something new on a topic that interests you.',
+      duration: '10-20 minutes',
+      icon: '🎥'
+    }
+  ],
+  'tired': [
+    {
+      category: 'Restorative',
+      title: 'Prepare for Sleep',
+      description: 'Start your bedtime routine: dim lights, brush teeth, get comfortable.',
+      duration: '10-15 minutes',
+      icon: '🛏️'
+    },
+    {
+      category: 'Gentle',
+      title: 'Listen to Calming Music',
+      description: 'Put on soothing sounds or a sleep meditation.',
+      duration: '10-15 minutes',
+      icon: '🎵'
+    },
+    {
+      category: 'Mindful',
+      title: 'Body Scan',
+      description: 'Lie down and mentally scan your body from toes to head, releasing tension.',
+      duration: '10 minutes',
+      icon: '🧘'
+    }
+  ],
+  'anxious': [
+    {
+      category: 'Grounding',
+      title: '5-4-3-2-1 Technique',
+      description: 'Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.',
+      duration: '5 minutes',
+      icon: '👁️'
+    },
+    {
+      category: 'Movement',
+      title: 'Walk Around Your Space',
+      description: 'Take a slow walk, even if just around your home.',
+      duration: '10 minutes',
+      icon: '🚶‍♀️'
+    },
+    {
+      category: 'Calming',
+      title: 'Progressive Muscle Relaxation',
+      description: 'Tense and release each muscle group to release physical anxiety.',
+      duration: '10-15 minutes',
+      icon: '💆‍♀️'
+    }
+  ],
+  'lonely': [
+    {
+      category: 'Connection',
+      title: 'Send a Caring Message',
+      description: 'Text someone to let them know you\'re thinking of them.',
+      duration: '5-10 minutes',
+      icon: '💌'
+    },
+    {
+      category: 'Self-Compassion',
+      title: 'Write Yourself a Letter',
+      description: 'Write to yourself with the kindness you\'d show a good friend.',
+      duration: '10-15 minutes',
+      icon: '💝'
+    },
+    {
+      category: 'Community',
+      title: 'Join Online Community',
+      description: 'Engage in a positive online space around your interests.',
+      duration: '15-20 minutes',
+      icon: '👥'
+    }
+  ],
+  'sad': [
+    {
+      category: 'Comfort',
+      title: 'Wrap in a Blanket',
+      description: 'Get cozy with a warm blanket and allow yourself to feel.',
+      duration: '10 minutes',
+      icon: '🫂'
+    },
+    {
+      category: 'Expression',
+      title: 'Listen to Music',
+      description: 'Play music that matches or soothes your mood.',
+      duration: '10-15 minutes',
+      icon: '🎶'
+    },
+    {
+      category: 'Gentle',
+      title: 'Watch Something Uplifting',
+      description: 'Choose a comforting show or video that brings you peace.',
+      duration: '15-20 minutes',
+      icon: '📺'
+    }
+  ],
+  'frustrated': [
+    {
+      category: 'Release',
+      title: 'Physical Release',
+      description: 'Do jumping jacks, push-ups, or shake out your body.',
+      duration: '5 minutes',
+      icon: '💪'
+    },
+    {
+      category: 'Creative',
+      title: 'Tear Paper or Scribble',
+      description: 'Safely release frustration through tearing paper or scribbling.',
+      duration: '5 minutes',
+      icon: '📄'
+    },
+    {
+      category: 'Calming',
+      title: 'Cold Water Splash',
+      description: 'Splash cold water on face or hold ice cubes to reset.',
+      duration: '2-3 minutes',
+      icon: '💧'
+    }
+  ],
+  'irritated': [
+    {
+      category: 'Space',
+      title: 'Step Outside',
+      description: 'Get fresh air, even if just standing by a window.',
+      duration: '5-10 minutes',
+      icon: '🌿'
+    },
+    {
+      category: 'Distraction',
+      title: 'Brain Puzzle',
+      description: 'Do a crossword, sudoku, or word game to redirect focus.',
+      duration: '10-15 minutes',
+      icon: '🧩'
+    },
+    {
+      category: 'Soothing',
+      title: 'Aromatherapy',
+      description: 'Light a candle or use essential oils you find calming.',
+      duration: '5 minutes',
+      icon: '🕯️'
+    }
+  ],
+  'stressed': [
     {
       category: 'Mindfulness',
       title: 'Box Breathing',
@@ -201,8 +385,48 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
     if (currentStep !== 'breathing-exercise') {
       setBreathingStep('intro');
       setCycleCount(0);
+      setCurrentPhase('inhale');
     }
   }, [currentStep]);
+  
+  // Breathing exercise timer effect
+  useEffect(() => {
+    if (breathingStep === 'active' && currentStep === 'breathing-exercise') {
+      const phases = [
+        { phase: 'inhale', duration: 4000 },
+        { phase: 'hold1', duration: 7000 },
+        { phase: 'exhale', duration: 8000 },
+        { phase: 'hold2', duration: 1000 }
+      ];
+      
+      let phaseIndex = 0;
+      let timeoutId: NodeJS.Timeout;
+      
+      const runPhase = () => {
+        if (cycleCount >= 4) {
+          setBreathingStep('complete');
+          return;
+        }
+        
+        const phase = phases[phaseIndex];
+        setCurrentPhase(phase.phase as any);
+        
+        timeoutId = setTimeout(() => {
+          phaseIndex = (phaseIndex + 1) % phases.length;
+          if (phaseIndex === 0 && phase.phase === 'hold2') {
+            setCycleCount(prev => prev + 1);
+          }
+          runPhase();
+        }, phase.duration);
+      };
+      
+      runPhase();
+      
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+      };
+    }
+  }, [breathingStep, currentStep, cycleCount]);
 
   // Component for context tooltips
   const ContextTooltip = ({ text, id }: { text: string; id: string }) => (
@@ -491,6 +715,42 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
           <p className="text-sm text-gray-600">Choose an activity that feels right, or create your own.</p>
         </div>
         
+        {/* Emotion-specific suggestions */}
+        {emotionalSuggestions.length > 0 && (
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">
+              💙 Based on how you're feeling:
+            </h4>
+            <div className="space-y-2">
+              {emotionalSuggestions.map((activity, index) => (
+                <button
+                  key={`emotion-${index}`}
+                  onClick={() => {
+                    setCheckInData(prev => ({ ...prev, selectedActivity: activity }));
+                    setCurrentStep('timer');
+                  }}
+                  className="w-full p-3 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 transition-all text-left"
+                >
+                  <div className="flex items-start space-x-2">
+                    <span className="text-lg">{activity.icon}</span>
+                    <div className="flex-1">
+                      <h5 className="font-medium text-blue-900 text-sm">{activity.title}</h5>
+                      <p className="text-xs text-blue-700 mt-1">{activity.description}</p>
+                      <span className="inline-block mt-1 px-2 py-0.5 bg-blue-200 text-blue-800 text-xs rounded">
+                        {activity.duration} • {activity.category}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <h4 className="text-sm font-medium text-gray-700 mb-3">
+          🌸 Or choose a general nurturing activity:
+        </h4>
+        
         <div className="space-y-3">
           {commonActivities.map((activity, index) => (
             <button
@@ -657,6 +917,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   };
 
   const renderBreathingExercise = () => {
+    // The breathing timer is handled by useEffect at component level
     
     useEffect(() => {
       if (breathingStep === 'active') {
