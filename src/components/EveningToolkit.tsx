@@ -8,7 +8,7 @@ interface EveningToolkitProps {
   onSkip?: () => void;
 }
 
-type CheckInStep = 'welcome' | 'timing-check' | 'feelings-check' | 'hunger-fullness' | 'routing' | 'mindful-eating' | 'timer' | 'reflection' | 'insights';
+type CheckInStep = 'welcome' | 'timing-check' | 'feelings-check' | 'hunger-fullness' | 'routing' | 'activity-selection' | 'pause-options' | 'journaling' | 'breathing-exercise' | 'eating-prompts' | 'mindful-eating' | 'timer' | 'reflection' | 'insights';
 
 interface ActivitySuggestion {
   category: string;
@@ -21,6 +21,7 @@ interface ActivitySuggestion {
 interface CheckInData {
   lastMealTiming: string;
   feelings: string[];
+  customFeeling?: string;
   emotionalIntensity: number;
   hungerFullnessLevel: number;
   routeChosen: 'eat' | 'activity' | 'pause';
@@ -175,11 +176,13 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   const [checkInData, setCheckInData] = useState<CheckInData>({
     lastMealTiming: '',
     feelings: [],
+    customFeeling: '',
     emotionalIntensity: 5,
     hungerFullnessLevel: 5,
     routeChosen: 'pause',
     timestamp: new Date().toISOString()
   });
+  const [showCustomFeeling, setShowCustomFeeling] = useState(false);
   const [timerMinutes, setTimerMinutes] = useState(10);
   const [timerActive, setTimerActive] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(600); // 10 minutes in seconds
@@ -272,8 +275,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
 
   const renderRouting = () => {
     const isPhysicallyHungry = checkInData.hungerFullnessLevel <= 3 && checkInData.feelings.includes('physically-hungry');
-    const isEmotional = checkInData.feelings.some(f => ['stressed', 'bored', 'tired', 'anxious', 'lonely'].includes(f));
-    const isHabitual = checkInData.feelings.includes('habitual');
+    const isEmotional = checkInData.feelings.some(f => ['stressed', 'bored', 'tired', 'anxious', 'lonely', 'sad', 'frustrated', 'irritated'].includes(f)) || checkInData.customFeeling;
 
     return (
       <div className="space-y-6">
@@ -303,11 +305,11 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
             </button>
           )}
 
-          {(isEmotional || isHabitual) && (
+          {isEmotional && (
             <button
               onClick={() => {
                 setCheckInData(prev => ({ ...prev, routeChosen: 'activity' }));
-                setCurrentStep('timer');
+                setCurrentStep('activity-selection');
               }}
               className="w-full p-4 rounded-lg border-2 border-purple-500 bg-purple-50 hover:bg-purple-100 transition-all text-left"
             >
@@ -316,7 +318,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
                 <div>
                   <h4 className="font-semibold text-purple-800">Explore what you need</h4>
                   <p className="text-sm text-purple-700 mt-1">
-                    Let's take 10 minutes to discover gentle ways to nurture what you're really feeling.
+                    Let's discover gentle ways to nurture what you're really feeling right now.
                   </p>
                 </div>
               </div>
@@ -326,7 +328,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
           <button
             onClick={() => {
               setCheckInData(prev => ({ ...prev, routeChosen: 'pause' }));
-              setCurrentStep('reflection');
+              setCurrentStep('pause-options');
             }}
             className="w-full p-4 rounded-lg border-2 border-blue-500 bg-blue-50 hover:bg-blue-100 transition-all text-left"
           >
@@ -335,7 +337,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
               <div>
                 <h4 className="font-semibold text-blue-800">Just pause and reflect</h4>
                 <p className="text-sm text-blue-700 mt-1">
-                  Sometimes awareness is enough. Take a moment to sit with whatever you're experiencing.
+                  Sometimes awareness is enough. Choose a gentle way to sit with whatever you're experiencing.
                 </p>
               </div>
             </div>
@@ -345,7 +347,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
             <button
               onClick={() => {
                 setCheckInData(prev => ({ ...prev, routeChosen: 'eat' }));
-                setCurrentStep('mindful-eating');
+                setCurrentStep('eating-prompts');
               }}
               className="w-full p-4 rounded-lg border-2 border-gray-300 bg-gray-50 hover:bg-gray-100 transition-all text-left"
             >
@@ -354,7 +356,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
                 <div>
                   <h4 className="font-semibold text-gray-700">I want to eat anyway</h4>
                   <p className="text-sm text-gray-600 mt-1">
-                    That's okay too. Let's explore mindful eating to make it a nourishing experience.
+                    That's okay too. Let's explore some gentle questions to make it a mindful experience.
                   </p>
                 </div>
               </div>
@@ -420,12 +422,447 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
     </div>
   );
 
+  const renderActivitySelection = () => {
+    const commonActivities = [
+      {
+        category: 'Comfort',
+        title: 'Herbal Tea Ritual',
+        description: 'Prepare and slowly sip a calming tea like chamomile, passionflower, or mint.',
+        duration: '10-15 minutes',
+        icon: '🍵'
+      },
+      {
+        category: 'Engaging',
+        title: 'Reading Before Bed',
+        description: 'Pick up a book, magazine, or articles that bring you joy or calm.',
+        duration: '15-20 minutes',
+        icon: '📚'
+      },
+      {
+        category: 'Mindfulness',
+        title: 'Gentle Breathing',
+        description: 'Focus on slow, deep breaths to center yourself and release tension.',
+        duration: '5-10 minutes',
+        icon: '🧘‍♀️'
+      },
+      {
+        category: 'Self-Care',
+        title: 'Evening Skincare',
+        description: 'Take time for a gentle skincare routine or apply lotion mindfully.',
+        duration: '10 minutes',
+        icon: '✨'
+      },
+      {
+        category: 'Creative',
+        title: 'Journal Writing',
+        description: 'Write about your day, feelings, or anything on your mind.',
+        duration: '10-15 minutes',
+        icon: '📝'
+      },
+      {
+        category: 'Movement',
+        title: 'Gentle Stretching',
+        description: 'Light stretches focusing on areas that feel tense or tight.',
+        duration: '5-10 minutes',
+        icon: '🤸‍♀️'
+      }
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">What would feel nurturing right now?</h3>
+          <p className="text-sm text-gray-600">Choose an activity that feels right, or create your own.</p>
+        </div>
+        
+        <div className="space-y-3">
+          {commonActivities.map((activity, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setCheckInData(prev => ({ ...prev, selectedActivity: activity }));
+                setCurrentStep('timer');
+              }}
+              className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-purple-300 transition-all text-left"
+            >
+              <div className="flex items-start space-x-3">
+                <span className="text-2xl">{activity.icon}</span>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900">{activity.title}</h4>
+                  <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                  <span className="inline-block mt-2 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                    {activity.duration} • {activity.category}
+                  </span>
+                </div>
+              </div>
+            </button>
+          ))}
+          
+          {/* Custom activity option */}
+          <div className="p-4 rounded-lg border-2 border-dashed border-gray-300">
+            <h4 className="font-semibold text-gray-900 mb-2">🎨 Create Your Own</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              What would feel most nurturing for you right now? Trust your instincts.
+            </p>
+            <input
+              type="text"
+              placeholder="I want to..."
+              className="w-full p-2 border border-gray-300 rounded text-sm mb-3"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                  setCheckInData(prev => ({ 
+                    ...prev, 
+                    selectedActivity: {
+                      category: 'Custom',
+                      title: e.currentTarget.value,
+                      description: 'Your own self-care choice',
+                      duration: '10 minutes',
+                      icon: '💕'
+                    }
+                  }));
+                  setCurrentStep('timer');
+                }
+              }}
+            />
+            <p className="text-xs text-gray-500">Press Enter to continue with your choice</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const getActivitySuggestions = () => {
     const dominantFeeling = checkInData.feelings[0];
-    if (checkInData.hungerFullnessLevel <= 3 && checkInData.feelings.includes('habitual')) {
-      return ACTIVITY_SUGGESTIONS.habit;
-    }
     return ACTIVITY_SUGGESTIONS[dominantFeeling] || ACTIVITY_SUGGESTIONS.bored;
+  };
+
+  const renderPauseOptions = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">How would you like to pause?</h3>
+        <p className="text-sm text-gray-600">Choose what feels most supportive right now.</p>
+      </div>
+      
+      <div className="space-y-4">
+        <button
+          onClick={() => setCurrentStep('journaling')}
+          className="w-full p-4 rounded-lg border-2 border-blue-200 bg-blue-50 hover:bg-blue-100 transition-all text-left"
+        >
+          <div className="flex items-start space-x-3">
+            <span className="text-2xl">📝</span>
+            <div>
+              <h4 className="font-semibold text-blue-800">Journal Your Feelings</h4>
+              <p className="text-sm text-blue-700 mt-1">
+                Write freely about what you're experiencing right now. No judgment, just curiosity.
+              </p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setCurrentStep('breathing-exercise')}
+          className="w-full p-4 rounded-lg border-2 border-green-200 bg-green-50 hover:bg-green-100 transition-all text-left"
+        >
+          <div className="flex items-start space-x-3">
+            <span className="text-2xl">🫁</span>
+            <div>
+              <h4 className="font-semibold text-green-800">Calming Breathing Exercise</h4>
+              <p className="text-sm text-green-700 mt-1">
+                A simple 4-7-8 breathing technique to help you find calm and center yourself.
+              </p>
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setCurrentStep('reflection')}
+          className="w-full p-4 rounded-lg border-2 border-purple-200 bg-purple-50 hover:bg-purple-100 transition-all text-left"
+        >
+          <div className="flex items-start space-x-3">
+            <span className="text-2xl">🤔</span>
+            <div>
+              <h4 className="font-semibold text-purple-800">Just Sit with This</h4>
+              <p className="text-sm text-purple-700 mt-1">
+                Sometimes presence is enough. Simply acknowledge what you're feeling without needing to change it.
+              </p>
+            </div>
+          </div>
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderJournaling = () => {
+    const [journalEntry, setJournalEntry] = useState('');
+    
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">📝 Journal Space</h3>
+          <p className="text-sm text-gray-600">Write whatever comes to mind. This is your safe space.</p>
+        </div>
+        
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">Gentle prompts (if helpful):</h4>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• What am I feeling right now?</li>
+            <li>• What has my day been like?</li>
+            <li>• What do I need most right now?</li>
+            <li>• What am I grateful for today?</li>
+            <li>• What would I tell a friend feeling this way?</li>
+          </ul>
+        </div>
+
+        <textarea
+          value={journalEntry}
+          onChange={(e) => setJournalEntry(e.target.value)}
+          placeholder="Dear journal..."
+          className="w-full p-4 border border-gray-300 rounded-lg min-h-[200px] resize-none"
+        />
+
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              setCheckInData(prev => ({ ...prev, reflectionNotes: journalEntry }));
+              setCurrentStep('reflection');
+            }}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium"
+          >
+            Continue to Reflection
+          </button>
+          <button
+            onClick={() => setCurrentStep('reflection')}
+            className="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
+          >
+            Skip Journaling
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderBreathingExercise = () => {
+    const [breathingStep, setBreathingStep] = useState<'intro' | 'active' | 'complete'>('intro');
+    const [currentPhase, setCurrentPhase] = useState<'inhale' | 'hold1' | 'exhale' | 'hold2'>('inhale');
+    const [cycleCount, setCycleCount] = useState(0);
+    
+    useEffect(() => {
+      if (breathingStep === 'active') {
+        const phases = [
+          { phase: 'inhale', duration: 4000, text: 'Breathe in slowly...' },
+          { phase: 'hold1', duration: 7000, text: 'Hold your breath...' },
+          { phase: 'exhale', duration: 8000, text: 'Exhale completely...' },
+          { phase: 'hold2', duration: 1000, text: 'Pause...' }
+        ];
+        
+        let phaseIndex = 0;
+        let currentCycle = 0;
+        
+        const nextPhase = () => {
+          if (currentCycle >= 4) {
+            setBreathingStep('complete');
+            return;
+          }
+          
+          const phase = phases[phaseIndex];
+          setCurrentPhase(phase.phase as any);
+          
+          setTimeout(() => {
+            phaseIndex = (phaseIndex + 1) % phases.length;
+            if (phaseIndex === 0) {
+              currentCycle++;
+              setCycleCount(currentCycle);
+            }
+            nextPhase();
+          }, phase.duration);
+        };
+        
+        nextPhase();
+      }
+    }, [breathingStep]);
+
+    if (breathingStep === 'intro') {
+      return (
+        <div className="space-y-6 text-center">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">🫁 4-7-8 Breathing</h3>
+            <p className="text-sm text-gray-600">A calming technique to help reset your nervous system.</p>
+          </div>
+          
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-left">
+            <h4 className="font-medium text-green-900 mb-2">How it works:</h4>
+            <ul className="text-sm text-green-800 space-y-1">
+              <li>• <strong>Inhale</strong> for 4 counts</li>
+              <li>• <strong>Hold</strong> for 7 counts</li>
+              <li>• <strong>Exhale</strong> for 8 counts</li>
+              <li>• Repeat for 4 cycles</li>
+            </ul>
+          </div>
+
+          <button
+            onClick={() => setBreathingStep('active')}
+            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium"
+          >
+            Start Breathing Exercise
+          </button>
+        </div>
+      );
+    }
+
+    if (breathingStep === 'active') {
+      const phaseTexts = {
+        inhale: '🌸 Breathe in slowly through your nose...',
+        hold1: '⏸️ Hold your breath gently...',
+        exhale: '🍃 Exhale completely through your mouth...',
+        hold2: '✨ Rest...'
+      };
+
+      return (
+        <div className="space-y-8 text-center">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Follow the rhythm</h3>
+            <p className="text-sm text-gray-600">Cycle {cycleCount + 1} of 4</p>
+          </div>
+          
+          <div className="py-12">
+            <div className={`text-6xl mb-4 transition-all duration-1000 ${
+              currentPhase === 'inhale' ? 'scale-110 text-blue-500' :
+              currentPhase === 'hold1' ? 'scale-125 text-purple-500' :
+              currentPhase === 'exhale' ? 'scale-90 text-green-500' :
+              'scale-100 text-gray-400'
+            }`}>
+              ●
+            </div>
+            <p className="text-lg font-medium text-gray-800">
+              {phaseTexts[currentPhase]}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6 text-center">
+        <div className="text-4xl mb-4">✨</div>
+        <h3 className="text-lg font-semibold text-gray-900">Beautiful work</h3>
+        <p className="text-gray-600">You've completed 4 cycles of calming breath. Notice how you feel now.</p>
+        
+        <div className="space-y-3">
+          <button
+            onClick={() => setCurrentStep('reflection')}
+            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium"
+          >
+            Continue to Reflection
+          </button>
+          <button
+            onClick={() => {
+              setBreathingStep('intro');
+              setCycleCount(0);
+            }}
+            className="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
+          >
+            Do Another Round
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEatingPrompts = () => {
+    const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
+    const [showMorePrompts, setShowMorePrompts] = useState(false);
+    
+    const prompts = [
+      {
+        question: "What do I want out of this snack?",
+        context: "Understanding your intention can help you choose mindfully.",
+        examples: ["Comfort", "Energy", "Flavor", "Something to do"]
+      },
+      {
+        question: "How can I slow down and savor the taste?",
+        context: "Eating slowly helps you enjoy more and recognize satisfaction.",
+        examples: ["Put utensils down between bites", "Chew slowly", "Notice flavors"]
+      },
+      {
+        question: "How do I want to feel after eating?",
+        context: "Visualizing the outcome can guide your choices.",
+        examples: ["Satisfied but not stuffed", "Energized", "Comforted", "At peace"]
+      },
+      {
+        question: "What would make this eating experience special?",
+        context: "Making it intentional rather than automatic.",
+        examples: ["Sitting at the table", "Using a nice plate", "No distractions", "Gratitude"]
+      }
+    ];
+
+    const currentPrompt = prompts[currentPromptIndex];
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">🤝 Mindful Eating Questions</h3>
+          <p className="text-sm text-gray-600">Let's explore this choice with curiosity, not judgment.</p>
+        </div>
+        
+        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <h4 className="font-semibold text-orange-900 mb-2">{currentPrompt.question}</h4>
+          <p className="text-sm text-orange-800 mb-3">{currentPrompt.context}</p>
+          <div className="space-y-2">
+            {currentPrompt.examples.map((example, index) => (
+              <div key={index} className="text-sm text-orange-700 bg-orange-100 px-2 py-1 rounded">
+                💭 {example}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm text-green-800">
+            <strong>Take a moment</strong> to reflect on this question. There's no wrong answer—just curiosity about your experience.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {currentPromptIndex < prompts.length - 1 ? (
+            <button
+              onClick={() => setCurrentPromptIndex(currentPromptIndex + 1)}
+              className="w-full bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700 font-medium"
+            >
+              Next Question ({currentPromptIndex + 2} of {prompts.length})
+            </button>
+          ) : (
+            <button
+              onClick={() => setCurrentStep('mindful-eating')}
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium"
+            >
+              Continue to Mindful Eating Guide
+            </button>
+          )}
+          
+          {currentPromptIndex > 0 && (
+            <button
+              onClick={() => setCurrentPromptIndex(currentPromptIndex - 1)}
+              className="w-full bg-gray-400 text-white py-3 rounded-lg hover:bg-gray-500"
+            >
+              Previous Question
+            </button>
+          )}
+          
+          <button
+            onClick={() => setCurrentStep('mindful-eating')}
+            className="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
+          >
+            Skip Questions - Go to Eating Guide
+          </button>
+        </div>
+
+        <div className="text-center">
+          <p className="text-xs text-gray-500">
+            These questions are here to support you, not judge you. 💕
+          </p>
+        </div>
+      </div>
+    );
   };
 
   const saveCheckInData = () => {
@@ -488,7 +925,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
       <div className="grid grid-cols-2 gap-3">
         {[
           'physically-hungry', 'tired', 'stressed', 'bored', 
-          'happy', 'lonely', 'habitual', 'satisfied'
+          'happy', 'lonely', 'sad', 'frustrated', 'irritated', 'satisfied'
         ].map(feeling => (
           <button
             key={feeling}
@@ -509,7 +946,32 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
             {feeling.replace('-', ' ')}
           </button>
         ))}
+        
+        {/* Other option */}
+        <button
+          onClick={() => setShowCustomFeeling(!showCustomFeeling)}
+          className={`p-3 rounded-lg border-2 transition-all text-left ${
+            showCustomFeeling
+              ? 'border-purple-500 bg-purple-50'
+              : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          Other...
+        </button>
       </div>
+
+      {/* Custom feeling input */}
+      {showCustomFeeling && (
+        <div className="mt-4">
+          <input
+            type="text"
+            value={checkInData.customFeeling || ''}
+            onChange={(e) => setCheckInData(prev => ({ ...prev, customFeeling: e.target.value }))}
+            placeholder="Describe how you're feeling..."
+            className="w-full p-3 border border-gray-300 rounded-lg text-sm"
+          />
+        </div>
+      )}
 
       {checkInData.feelings.some(f => f !== 'physically-hungry' && f !== 'satisfied') && (
         <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -540,7 +1002,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
 
       <button
         onClick={() => setCurrentStep('hunger-fullness')}
-        disabled={checkInData.feelings.length === 0}
+        disabled={checkInData.feelings.length === 0 && !checkInData.customFeeling}
         className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
       >
         Continue
@@ -654,49 +1116,6 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
     </div>
   );
 
-  const renderActivitySelection = () => {
-    const suggestions = getActivitySuggestions();
-    
-    return (
-      <div className="space-y-4">
-        <div className="mb-6">
-          <p className="text-gray-700 mb-2">Based on your check-in, here are some activities that might help:</p>
-          <p className="text-sm text-blue-600">Choose one to try for the next 10 minutes</p>
-        </div>
-        
-        <div className="space-y-3">
-          {suggestions.map((activity, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                setCheckInData(prev => ({ ...prev, selectedActivity: activity }));
-                setCurrentStep('timer');
-              }}
-              className="w-full p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-all text-left"
-            >
-              <div className="flex items-start space-x-3">
-                <span className="text-2xl">{activity.icon}</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{activity.title}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
-                  <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                    {activity.duration} • {activity.category}
-                  </span>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-        
-        <button
-          onClick={() => setCurrentStep('timer')}
-          className="w-full mt-4 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600"
-        >
-          Skip - Just Use Timer
-        </button>
-      </div>
-    );
-  };
 
   const renderTimer = () => (
     <div className="text-center space-y-6">
@@ -872,6 +1291,16 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
         return renderHungerFullnessScale();
       case 'routing':
         return renderRouting();
+      case 'activity-selection':
+        return renderActivitySelection();
+      case 'pause-options':
+        return renderPauseOptions();
+      case 'journaling':
+        return renderJournaling();
+      case 'breathing-exercise':
+        return renderBreathingExercise();
+      case 'eating-prompts':
+        return renderEatingPrompts();
       case 'mindful-eating':
         return renderMindfulEating();
       case 'timer':
@@ -894,14 +1323,14 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
             <div className="flex justify-between text-xs text-gray-500 mb-2">
               <span>Evening Toolkit</span>
               <span>
-                Step {['welcome', 'timing-check', 'feelings-check', 'hunger-fullness', 'routing', 'mindful-eating', 'timer', 'reflection', 'insights'].indexOf(currentStep) + 1} of 9
+                Step {['welcome', 'timing-check', 'feelings-check', 'hunger-fullness', 'routing', 'activity-selection', 'pause-options', 'journaling', 'breathing-exercise', 'eating-prompts', 'mindful-eating', 'timer', 'reflection', 'insights'].indexOf(currentStep) + 1} of {['welcome', 'timing-check', 'feelings-check', 'hunger-fullness', 'routing', 'activity-selection', 'pause-options', 'journaling', 'breathing-exercise', 'eating-prompts', 'mindful-eating', 'timer', 'reflection', 'insights'].length}
               </span>
             </div>
             <div className="w-full bg-indigo-100 rounded-full h-2">
               <div 
                 className="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
                 style={{ 
-                  width: `${((['welcome', 'timing-check', 'feelings-check', 'hunger-fullness', 'routing', 'mindful-eating', 'timer', 'reflection', 'insights'].indexOf(currentStep) + 1) / 9) * 100}%` 
+                  width: `${((['welcome', 'timing-check', 'feelings-check', 'hunger-fullness', 'routing', 'activity-selection', 'pause-options', 'journaling', 'breathing-exercise', 'eating-prompts', 'mindful-eating', 'timer', 'reflection', 'insights'].indexOf(currentStep) + 1) / 14) * 100}%` 
                 }}
               />
             </div>
@@ -910,13 +1339,21 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
           {renderStepContent()}
           
           {/* Back button for most steps */}
-          {currentStep !== 'welcome' && currentStep !== 'reflection' && currentStep !== 'insights' && (
+          {currentStep !== 'welcome' && currentStep !== 'reflection' && currentStep !== 'insights' && currentStep !== 'breathing-exercise' && (
             <button
               onClick={() => {
-                const steps: CheckInStep[] = ['welcome', 'timing-check', 'feelings-check', 'hunger-fullness', 'routing', 'mindful-eating', 'timer', 'reflection', 'insights'];
-                const currentIndex = steps.indexOf(currentStep);
-                if (currentIndex > 0) {
-                  setCurrentStep(steps[currentIndex - 1]);
+                // Special back logic for branching paths
+                if (currentStep === 'activity-selection' || currentStep === 'pause-options' || currentStep === 'eating-prompts') {
+                  setCurrentStep('routing');
+                } else if (currentStep === 'journaling' || currentStep === 'timer') {
+                  // Don't show back button for these steps
+                  return;
+                } else {
+                  const steps: CheckInStep[] = ['welcome', 'timing-check', 'feelings-check', 'hunger-fullness', 'routing'];
+                  const currentIndex = steps.indexOf(currentStep);
+                  if (currentIndex > 0) {
+                    setCurrentStep(steps[currentIndex - 1]);
+                  }
                 }
               }}
               className="mt-4 text-gray-500 hover:text-gray-700 text-sm"
