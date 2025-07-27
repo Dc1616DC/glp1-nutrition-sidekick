@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import MealReminders from '../components/MealReminders';
-import { useEffect } from 'react';
+import NutritionOnboarding from '../components/NutritionOnboarding';
+import { useEffect, useState } from 'react';
 import {
   getNotificationPermissionState,
 } from '../services/simpleNotificationService';
@@ -14,12 +15,22 @@ import {
 export default function Home() {
   // We use our custom `useAuth` hook to get the current user and loading state.
   const { user, loading } = useAuth();
+  const [showNutritionOnboarding, setShowNutritionOnboarding] = useState(false);
 
   // Local notification permission check (no service worker registration)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     getNotificationPermissionState();
-  }, []);
+    
+    // Show nutrition onboarding for new authenticated users
+    if (user && !loading) {
+      const hasSeenOnboarding = localStorage.getItem('nutritionOnboardingSeen');
+      if (!hasSeenOnboarding) {
+        // Show onboarding after a brief delay for better UX
+        setTimeout(() => setShowNutritionOnboarding(true), 1500);
+      }
+    }
+  }, [user, loading]);
   /* eslint-enable react-hooks/exhaustive-deps */
 
   const features = [
@@ -38,9 +49,9 @@ export default function Home() {
       textColor: 'text-green-800',
     },
     {
-      title: 'Simple Educational Hub',
+      title: 'Essential Nutrition Guide',
       description:
-        "Understand the 'why' behind the nutrition strategies with simple, scannable, and evidence-based articles.",
+        "Master the fundamentals with 10 key nutrition insights specifically designed for GLP-1 users - from protein targets to managing low appetite days.",
       color: 'bg-teal-100',
       textColor: 'text-teal-800',
     },
@@ -116,6 +127,15 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {/* Nutrition Onboarding Modal */}
+      {showNutritionOnboarding && (
+        <NutritionOnboarding
+          onComplete={() => setShowNutritionOnboarding(false)}
+          onSkip={() => setShowNutritionOnboarding(false)}
+          isNewUser={true}
+        />
+      )}
     </div>
   );
 }

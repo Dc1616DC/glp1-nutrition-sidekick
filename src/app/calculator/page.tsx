@@ -144,6 +144,18 @@ export default function CalculatorPage() {
           <p><strong>TDEE:</strong> {results.tdee} kcal/day</p>
           <p><strong>Target Calories:</strong> {results.targetCalories} kcal/day</p>
           <p><strong>Protein Goal:</strong> {results.proteinRange}</p>
+          
+          {/* Nutrition tips highlight */}
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              💡 <strong>Ready to put these numbers to work?</strong> Check out our{' '}
+              <Link href="/meal-generator" className="underline hover:text-blue-900 font-medium">
+                10 Essential Nutrition Tips
+              </Link>{' '}
+              to make the most of your GLP-1 journey and hit your protein goals with confidence.
+            </p>
+          </div>
+          
           {!user && (
             <p className="pt-2 text-sm text-center text-gray-600">
               Want to save your results?{' '}

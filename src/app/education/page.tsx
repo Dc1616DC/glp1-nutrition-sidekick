@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import NutritionInsights from '../../components/NutritionInsights';
 
 // For a novice developer: This component is the "Education Hub".
 // It's a client component because we use `useState` to create an interactive
@@ -83,6 +84,9 @@ export default function EducationPage() {
   const [expandedArticle, setExpandedArticle] = useState<string | null>(
     educationArticles[0].title
   );
+  
+  // Add tab state for switching between articles and insights
+  const [activeTab, setActiveTab] = useState<'articles' | 'insights'>('insights');
 
   // This function handles the click event on an article title.
   const handleToggle = (title: string) => {
@@ -91,7 +95,7 @@ export default function EducationPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-6xl mx-auto px-6">
       <div className="text-center">
         <h1 className="text-3xl font-bold text-gray-800">Education Hub</h1>
         <p className="mt-2 text-lg text-gray-600">
@@ -99,8 +103,40 @@ export default function EducationPage() {
         </p>
       </div>
 
-      <div className="max-w-4xl mx-auto space-y-4">
-        {educationArticles.map((article) => (
+      {/* Tab Navigation */}
+      <div className="flex justify-center">
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('insights')}
+            className={`px-6 py-3 rounded-md font-medium transition-colors ${
+              activeTab === 'insights'
+                ? 'bg-white text-blue-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            💡 Nutrition Insights
+          </button>
+          <button
+            onClick={() => setActiveTab('articles')}
+            className={`px-6 py-3 rounded-md font-medium transition-colors ${
+              activeTab === 'articles'
+                ? 'bg-white text-blue-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            📚 In-Depth Articles
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'insights' ? (
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <NutritionInsights />
+        </div>
+      ) : (
+        <div className="max-w-4xl mx-auto space-y-4">
+          {educationArticles.map((article) => (
           <div
             key={article.title}
             className="border border-gray-200 rounded-lg shadow-sm overflow-hidden"
@@ -143,8 +179,9 @@ export default function EducationPage() {
               </div>
             )}
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

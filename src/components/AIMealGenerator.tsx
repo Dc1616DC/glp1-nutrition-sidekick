@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import AllergiesFilter from './AllergiesFilter';
 import { clientNutritionService } from '../services/clientNutritionService';
+import InsightNudge from './InsightNudge';
+import NutritionInsights from './NutritionInsights';
 
 interface MealPreferences {
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -79,6 +81,54 @@ export default function AIMealGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [previousMeals, setPreviousMeals] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'generator' | 'education'>('generator');
+  const [showNudge, setShowNudge] = useState<{
+    type: 'lowProtein' | 'lowFiber' | null;
+    mealData?: { protein: number; fiber: number; calories: number };
+  }>({ type: null });
+  const [showInsightModal, setShowInsightModal] = useState<string | null>(null);
+
+  // Educational tips for GLP-1 users
+  const educationalTips = [
+    {
+      icon: "💪",
+      title: "Protein Power",
+      tip: "Aim for 20-30g protein per meal to maximize satiety and work with your GLP-1 medication."
+    },
+    {
+      icon: "🌾", 
+      title: "Fiber First",
+      tip: "Include 8-12g fiber per meal from vegetables and whole grains to slow digestion and stabilize blood sugar."
+    },
+    {
+      icon: "⏰",
+      title: "Timing Matters", 
+      tip: "Eat at consistent times to prevent intense hunger episodes and support your body's natural rhythms."
+    },
+    {
+      icon: "🥗",
+      title: "Start Smart",
+      tip: "Begin meals with protein and fiber-rich foods to enhance fullness signals and slow eating."
+    },
+    {
+      icon: "💧",
+      title: "Hydration Helper",
+      tip: "Drink water 30 minutes before meals to support digestion and enhance the satiety effects of GLP-1."
+    },
+    {
+      icon: "🍽️",
+      title: "Mindful Eating",
+      tip: "Chew thoroughly and eat slowly - this helps with satiety and reduces GI side effects."
+    }
+  ];
+
+  // Rotate tip based on current time to give variety
+  const getCurrentTip = () => {
+    const tipIndex = Math.floor(Date.now() / (1000 * 60 * 60 * 6)) % educationalTips.length; // Changes every 6 hours
+    return educationalTips[tipIndex];
+  };
+
+  const currentTip = getCurrentTip();
 
   const clearHistory = () => {
     setPreviousMeals([]);
@@ -172,20 +222,37 @@ export default function AIMealGenerator() {
       // Handle multiple meals response from new hybrid system
       const meals = data.meals || [];
       
-      // Add source indicator to show it's from Grok's nutrition estimates
+      // Add source indicator and disclaimer
       meals.forEach((meal: GeneratedMeal) => {
-        meal.nutritionSource = data.source === 'grok+nutrition' ? 'Grok AI Nutrition Estimates' : 
+        meal.nutritionSource = data.source === 'grok-estimates' ? 'Grok AI Estimates*' : 
                               data.source === 'curated' ? 'Curated Recipes' : 'AI Generated';
       });
       
       setGeneratedMeals(meals);
       setSelectedMealIndex(0); // Default to first meal
       
-      // Show user feedback about the generation source
-      if (data.source === 'grok+nutrition') {
-        console.log('✅ Generated with Grok AI nutrition estimates (no external API needed!)');
+      // Show user feedback and disclaimer about nutrition estimates
+      if (data.source === 'grok-estimates') {
+        console.log('✅ Generated with Grok AI - nutrition values are estimates and may vary from actual values');
       } else if (data.fallback) {
         console.log('ℹ️ Using curated recipes as fallback - still GLP-1 optimized!');
+      }
+      
+      // Check nutrition thresholds and show contextual nudges
+      if (meals.length > 0) {
+        const firstMeal = meals[0];
+        const protein = firstMeal.nutrition?.protein || firstMeal.nutritionTotals?.protein || 0;
+        const fiber = firstMeal.nutrition?.fiber || firstMeal.nutritionTotals?.fiber || 0;
+        const calories = firstMeal.nutrition?.calories || firstMeal.nutritionTotals?.calories || 0;
+        
+        // Show nudges for low nutrition values (delayed to avoid overwhelming UI)
+        setTimeout(() => {
+          if (protein < 20) {
+            setShowNudge({ type: 'lowProtein', mealData: { protein, fiber, calories } });
+          } else if (fiber < 4) {
+            setShowNudge({ type: 'lowFiber', mealData: { protein, fiber, calories } });
+          }
+        }, 2000);
       }
       
       // Add generated meal names to history for variety
@@ -259,10 +326,53 @@ export default function AIMealGenerator() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* Header */}
       <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">🍽️ Chef-Inspired Meal Generator</h1>
         <p className="text-gray-600 mb-2">Delicious, satisfying meals designed specifically for GLP-1 users</p>
-        <p className="text-sm text-green-600 mb-6">✨ Every meal: 20g+ protein, 4g+ fiber, perfectly portioned for enhanced satiety</p>
+        <p className="text-sm text-green-600 mb-4">✨ Every meal: 15-30g+ protein, 4g+ fiber, perfectly portioned for enhanced satiety</p>
+        
+        <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            💡 <strong>New to GLP-1 nutrition?</strong> Check out our{' '}
+            <button 
+              onClick={() => setActiveTab('education')}
+              className="underline hover:text-blue-900 font-medium"
+            >
+              10 Essential Nutrition Tips
+            </button>{' '}
+            to make the most of your medication and eating changes.
+          </p>
+        </div>
+        
+        {/* Tab Navigation */}
+        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-6">
+          <button
+            onClick={() => setActiveTab('generator')}
+            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+              activeTab === 'generator'
+                ? 'bg-white text-green-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            🍽️ Meal Generator
+          </button>
+          <button
+            onClick={() => setActiveTab('education')}
+            className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+              activeTab === 'education'
+                ? 'bg-white text-blue-700 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            💡 GLP-1 Tips
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'generator' ? (
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
         
         {/* Allergies Filter - Safety First */}
         <AllergiesFilter 
@@ -382,10 +492,9 @@ export default function AIMealGenerator() {
             </button>
           )}
         </div>
-      </div>
 
-      {/* Generated Meals Display */}
-      {selectedMeal && (
+        {/* Generated Meals Display - Inside Generator Tab */}
+        {selectedMeal && (
         <div className="bg-white rounded-lg shadow-lg p-6">
           {/* Meal Selection Tabs (when multiple meals available) */}
           {generatedMeals.length > 1 && (
@@ -494,6 +603,11 @@ export default function AIMealGenerator() {
                   <span>Fat:</span>
                   <span>{scaledNutrition?.fat}g</span>
                 </div>
+              </div>
+              
+              {/* Nutrition Disclaimer */}
+              <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                <strong>⚠️ Note:</strong> Nutrition values are AI-generated estimates. Verify with nutrition labels for precise values.
               </div>
             </div>
 
@@ -637,6 +751,61 @@ export default function AIMealGenerator() {
             </button>
           </div>
         </div>
+        )}
+        
+        </div>
+      ) : (
+        /* Education Tab Content */
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h2 className="text-2xl font-bold text-blue-900 mb-6">💡 GLP-1 Nutrition Tips</h2>
+          
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm">
+              <strong>📚 Quick Reference:</strong> These evidence-based tips help you maximize the effectiveness of your GLP-1 medication through proper nutrition timing and food choices.
+            </p>
+          </div>
+          
+          <div className="grid gap-6">
+            {educationalTips.map((tip, index) => (
+              <div key={index} className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-5">
+                <div className="flex items-start space-x-4">
+                  <div className="text-3xl">{tip.icon}</div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-blue-900 mb-2 text-lg">{tip.title}</h3>
+                    <p className="text-blue-800 leading-relaxed">{tip.tip}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-8 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-800 text-sm">
+              <strong>💡 Pro Tip:</strong> These principles work together - combine high protein + fiber foods, eat at consistent times, and take your time with meals for best results.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Contextual Nudges */}
+      {showNudge.type && (
+        <InsightNudge
+          triggerType={showNudge.type}
+          mealData={showNudge.mealData}
+          onDismiss={() => setShowNudge({ type: null })}
+          onViewInsight={(insightId) => {
+            setShowInsightModal(insightId);
+            setShowNudge({ type: null });
+          }}
+        />
+      )}
+
+      {/* Insight Modal */}
+      {showInsightModal && (
+        <NutritionInsights
+          showAsModal={true}
+          onClose={() => setShowInsightModal(null)}
+        />
       )}
     </div>
   );
