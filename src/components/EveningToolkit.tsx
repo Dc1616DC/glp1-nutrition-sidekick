@@ -380,6 +380,10 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   // Journaling state
   const [journalEntry, setJournalEntry] = useState('');
   
+  // Eating prompts state
+  const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
+  const [showMorePrompts, setShowMorePrompts] = useState(false);
+  
   // Reset breathing exercise state when leaving the breathing step
   useEffect(() => {
     if (currentStep !== 'breathing-exercise') {
@@ -702,13 +706,6 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
         icon: '📚'
       },
       {
-        category: 'Mindfulness',
-        title: 'Gentle Breathing',
-        description: 'Focus on slow, deep breaths to center yourself and release tension.',
-        duration: '5-10 minutes',
-        icon: '🧘‍♀️'
-      },
-      {
         category: 'Self-Care',
         title: 'Evening Skincare',
         description: 'Take time for a gentle skincare routine or apply lotion mindfully.',
@@ -717,17 +714,24 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
       },
       {
         category: 'Creative',
-        title: 'Journal Writing',
-        description: 'Write about your day, feelings, or anything on your mind.',
-        duration: '10-15 minutes',
-        icon: '📝'
+        title: 'Art or Crafts',
+        description: 'Draw, color, knit, or engage in any creative activity that brings you joy.',
+        duration: '15-20 minutes',
+        icon: '🎨'
       },
       {
-        category: 'Movement',
-        title: 'Gentle Stretching',
-        description: 'Light stretches focusing on areas that feel tense or tight.',
-        duration: '5-10 minutes',
-        icon: '🤸‍♀️'
+        category: 'Connection',
+        title: 'Call a Loved One',
+        description: 'Reach out to someone you care about for a brief, uplifting conversation.',
+        duration: '10-15 minutes',
+        icon: '📞'
+      },
+      {
+        category: 'Mindful',
+        title: 'Gratitude Practice',
+        description: 'Write down or mentally note 3 things you\'re grateful for today.',
+        duration: '5 minutes',
+        icon: '🙏'
       }
     ];
 
@@ -941,41 +945,6 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
 
   const renderBreathingExercise = () => {
     // The breathing timer is handled by useEffect at component level
-    
-    useEffect(() => {
-      if (breathingStep === 'active') {
-        const phases = [
-          { phase: 'inhale', duration: 4000, text: 'Breathe in slowly...' },
-          { phase: 'hold1', duration: 7000, text: 'Hold your breath...' },
-          { phase: 'exhale', duration: 8000, text: 'Exhale completely...' },
-          { phase: 'hold2', duration: 1000, text: 'Pause...' }
-        ];
-        
-        let phaseIndex = 0;
-        let currentCycle = 0;
-        
-        const nextPhase = () => {
-          if (currentCycle >= 4) {
-            setBreathingStep('complete');
-            return;
-          }
-          
-          const phase = phases[phaseIndex];
-          setCurrentPhase(phase.phase as any);
-          
-          setTimeout(() => {
-            phaseIndex = (phaseIndex + 1) % phases.length;
-            if (phaseIndex === 0) {
-              currentCycle++;
-              setCycleCount(currentCycle);
-            }
-            nextPhase();
-          }, phase.duration);
-        };
-        
-        nextPhase();
-      }
-    }, [breathingStep]);
 
     if (breathingStep === 'intro') {
       return (
@@ -1066,8 +1035,6 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
   };
 
   const renderEatingPrompts = () => {
-    const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
-    const [showMorePrompts, setShowMorePrompts] = useState(false);
     
     const prompts = [
       {
