@@ -545,7 +545,27 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
             </button>
           )}
 
-          {isEmotional && (
+          {/* Always show explore option, not just for emotional states */}
+          <button
+            onClick={() => {
+              setCheckInData(prev => ({ ...prev, routeChosen: 'activity' }));
+              setCurrentStep('activity-selection');
+            }}
+            className="w-full p-4 rounded-lg border-2 border-purple-500 bg-purple-50 hover:bg-purple-100 transition-all text-left"
+          >
+            <div className="flex items-start space-x-3">
+              <span className="text-2xl">🌸</span>
+              <div>
+                <h4 className="font-semibold text-purple-800">Explore what you need</h4>
+                <p className="text-sm text-purple-700 mt-1">
+                  Let's discover gentle ways to nurture what you're really feeling right now.
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Keep the old emotional-specific option as backup */}
+          {false && isEmotional && (
             <button
               onClick={() => {
                 setCheckInData(prev => ({ ...prev, routeChosen: 'activity' }));
@@ -1426,7 +1446,7 @@ export default function EveningToolkit({ onComplete, onSkip }: EveningToolkitPro
             }}
             className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium"
           >
-            🎯 Start 10-Minute Break
+            🎯 {checkInData.routeChosen === 'eat' ? 'Start 10-Minute Mindful Eating Timer' : 'Start 10-Minute Break'}
           </button>
         ) : (
           <button
