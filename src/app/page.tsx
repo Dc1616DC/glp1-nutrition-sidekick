@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import MealReminders from '../components/MealReminders';
 import NutritionOnboarding from '../components/NutritionOnboarding';
+import EveningToolkit from '../components/EveningToolkit';
 import { useEffect, useState } from 'react';
 import {
   getNotificationPermissionState,
@@ -16,6 +17,7 @@ export default function Home() {
   // We use our custom `useAuth` hook to get the current user and loading state.
   const { user, loading } = useAuth();
   const [showNutritionOnboarding, setShowNutritionOnboarding] = useState(false);
+  const [showEveningToolkit, setShowEveningToolkit] = useState(false);
 
   // Local notification permission check (no service worker registration)
   useEffect(() => {
@@ -28,6 +30,20 @@ export default function Home() {
       if (!hasSeenOnboarding) {
         // Show onboarding after a brief delay for better UX
         setTimeout(() => setShowNutritionOnboarding(true), 1500);
+      }
+    }
+
+    // Check if Evening Toolkit should be shown (evening hours 6 PM - 11 PM)
+    const currentHour = new Date().getHours();
+    const isEveningTime = currentHour >= 18 && currentHour <= 23;
+    const eveningToolkitEnabled = localStorage.getItem('eveningToolkitEnabled') === 'true';
+    
+    if (isEveningTime && eveningToolkitEnabled && user) {
+      // Optional: Check if user has already seen toolkit today
+      const lastShown = localStorage.getItem('eveningToolkitLastShown');
+      const today = new Date().toDateString();
+      if (lastShown !== today) {
+        setTimeout(() => setShowEveningToolkit(true), 3000); // Show after nutrition onboarding
       }
     }
   }, [user, loading]);
@@ -134,6 +150,20 @@ export default function Home() {
           onComplete={() => setShowNutritionOnboarding(false)}
           onSkip={() => setShowNutritionOnboarding(false)}
           isNewUser={true}
+        />
+      )}
+
+      {/* Evening Toolkit Modal */}
+      {showEveningToolkit && (
+        <EveningToolkit
+          onComplete={() => {
+            setShowEveningToolkit(false);
+            localStorage.setItem('eveningToolkitLastShown', new Date().toDateString());
+          }}
+          onSkip={() => {
+            setShowEveningToolkit(false);
+            localStorage.setItem('eveningToolkitLastShown', new Date().toDateString());
+          }}
         />
       )}
     </div>
