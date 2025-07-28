@@ -1,11 +1,13 @@
 // GLP-1 Nutrition Sidekick Service Worker
-const CACHE_NAME = 'glp1-sidekick-v2'; // Bumped version to clear old cache
+const CACHE_NAME = 'glp1-sidekick-v3'; // Bumped version to include Evening Toolkit
 const STATIC_CACHE_URLS = [
   '/',
   '/manifest.json',
-  '/icon-192.png',  // ✅ Updated to PNG
-  '/icon-512.png',  // ✅ Updated to PNG
-  '/favicon.ico'
+  '/icon-192.png',
+  '/icon-512.png', 
+  '/favicon.ico',
+  '/settings', // Cache settings page for Evening Toolkit
+  '/education' // Cache education page for offline access
 ];
 
 // Install event - cache static assets
@@ -160,8 +162,8 @@ self.addEventListener('push', (event) => {
     
     const options = {
       body: data.body || 'You have a new notification',
-      icon: '/icon-192.jpg',
-      badge: '/icon-192.jpg',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
       tag: data.tag || 'default',
       requireInteraction: true,
       data: data.data || {}
