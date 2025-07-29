@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { getMealById, Meal } from '../../../firebase/db';
 
@@ -8,8 +8,11 @@ import { getMealById, Meal } from '../../../firebase/db';
 // The `[id]` in the folder name means that whatever is in the URL at that position
 // (e.g., /meals/abc123) will be available as `params.id` in this component.
 
-export default function MealDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params; // Get the meal ID from the URL
+type Params = Promise<{ id: string }>;
+
+export default function MealDetailPage({ params }: { params: Params }) {
+  // Use React.use() to unwrap the Promise (Next.js 15 pattern)
+  const { id } = use(params);
   const router = useRouter(); // Hook to programmatically navigate, e.g., back to the previous page
 
   const [meal, setMeal] = useState<Meal | null>(null); // State to hold the fetched meal data
@@ -125,6 +128,15 @@ export default function MealDetailPage({ params }: { params: { id: string } }) {
           <p className="text-sm text-gray-500">Prep Time</p>
         </div>
       </div>
+
+      {/* Nutrition Note for low-protein snacks */}
+      {meal.nutritionNote && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-800 text-sm">
+            {meal.nutritionNote}
+          </p>
+        </div>
+      )}
 
       {/* Ingredients */}
       <div>

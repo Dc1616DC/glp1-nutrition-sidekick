@@ -50,6 +50,7 @@ export interface Meal {
   fiberGrams: number;
   prepTimeMinutes: number;
   tags: string[]; // e.g., "vegetarian", "gluten-free"
+  nutritionNote?: string; // Optional nutrition recommendation
 }
 
 // --- User Profile Functions ---
@@ -125,8 +126,8 @@ export const updateUserProfile = async (userId: string, data: Partial<UserProfil
  * @returns {Promise<Meal[]>} An array of meal objects.
  */
 export const getMeals = async (): Promise<Meal[]> => {
-  // `collection(db, 'meals')` points to the entire 'meals' collection.
-  const querySnapshot = await getDocs(collection(db, "meals"));
+  // `collection(db, 'mealTemplates')` points to the entire 'mealTemplates' collection.
+  const querySnapshot = await getDocs(collection(db, "mealTemplates"));
   const meals: Meal[] = [];
   // We loop through each document snapshot in the result.
   querySnapshot.forEach((doc: DocumentData) => {
@@ -155,7 +156,7 @@ export const getMeals = async (): Promise<Meal[]> => {
  */
 export const getMealById = async (mealId: string): Promise<Meal | null> => {
   // Create a reference to the specific meal document
-  const mealDocRef = doc(db, "meals", mealId);
+  const mealDocRef = doc(db, "mealTemplates", mealId);
 
   // Fetch the document snapshot
   const mealSnap = await getDoc(mealDocRef);
