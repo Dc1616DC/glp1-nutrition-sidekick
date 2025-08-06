@@ -24,6 +24,7 @@ export default function Navbar() {
     { href: '/calculator', label: 'Calculator' },
     { href: '/meals', label: 'Meals' },
     { href: '/meal-generator', label: 'AI Meal Generator' },
+    { href: '/cookbook', label: '📚 My Cookbook' }, // Saved meals
     { href: '/symptoms', label: 'Symptoms' }, // New symptom tracker
     { href: '/analytics', label: '📊 Analytics' }, // Pro analytics dashboard
     { href: '/education', label: 'Education' },

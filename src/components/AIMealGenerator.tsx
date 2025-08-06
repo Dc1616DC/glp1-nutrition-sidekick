@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AllergiesFilter from './AllergiesFilter';
 import { clientNutritionService } from '../services/clientNutritionService';
+import { savedMealsService } from '../services/savedMealsService';
 import InsightNudge from './InsightNudge';
 import NutritionInsights from './NutritionInsights';
 import { useAuth } from '../context/AuthContext';
@@ -90,6 +91,8 @@ export default function AIMealGenerator() {
   }>({ type: null });
   const [symptomOptimized, setSymptomOptimized] = useState(false);
   const [showInsightModal, setShowInsightModal] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedMealIds, setSavedMealIds] = useState<string[]>([]); // Track which meals are saved
 
   // Educational tips for GLP-1 users
   const educationalTips = [
@@ -136,6 +139,55 @@ export default function AIMealGenerator() {
   const clearHistory = () => {
     setPreviousMeals([]);
     console.log('Meal history cleared for better variety');
+  };
+
+  // Save meal to user's cookbook
+  const saveMeal = async (meal: GeneratedMeal) => {
+    if (!user) {
+      alert('Please sign in to save meals');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Convert meal to save format
+      const saveRequest = {
+        meal: {
+          title: meal.name || meal.title || 'Untitled Meal',
+          description: meal.description,
+          ingredients: Array.isArray(meal.ingredients) 
+            ? meal.ingredients.map(ing => typeof ing === 'string' ? ing : `${ing.amount} ${ing.unit} ${ing.name}`)
+            : [],
+          instructions: meal.instructions || [],
+          nutritionTotals: meal.nutrition || meal.nutritionTotals || {},
+          servingSize: `${meal.servings || 1} serving${meal.servings > 1 ? 's' : ''}`,
+          cookingTime: (meal.prepTime || 0) + (meal.cookingTime || 0) || 30,
+          mealType: preferences.mealType
+        },
+        tags: [
+          preferences.mealType,
+          ...(meal.tags || []),
+          ...(meal.mealStyle || []),
+          ...preferences.dietaryRestrictions
+        ].filter(Boolean),
+        source: 'ai_generated' as const,
+        originalData: meal,
+        generationPreferences: preferences
+      };
+
+      const savedMeal = await savedMealsService.saveMeal(user.uid, saveRequest);
+      setSavedMealIds(prev => [...prev, savedMeal.id]);
+      
+      // Show success message
+      alert(`✅ "${savedMeal.title}" saved to your cookbook!`);
+      console.log('✅ Meal saved successfully:', savedMeal.title);
+      
+    } catch (error) {
+      console.error('Error saving meal:', error);
+      alert('Failed to save meal. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const enhanceWithFlavorfulTwists = async () => {
@@ -775,8 +827,12 @@ export default function AIMealGenerator() {
               {isEnhancing ? '✨ Adding Twists...' : '✨ Add Flavorful Twists'}
             </button>
             
-            <button className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 font-medium">
-              💾 Save Favorite
+            <button 
+              onClick={() => saveMeal(selectedMeal)}
+              disabled={isSaving}
+              className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
+            >
+              {isSaving ? '💾 Saving...' : '💾 Save to Cookbook'}
             </button>
             
             <button className="bg-blue-200 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-300 font-medium">
