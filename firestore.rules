@@ -109,6 +109,14 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
     
+    // Pantries - users can only access their own pantry (userId is document ID)
+    match /pantries/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isOwner(userId);
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
       calorieRange: requestBody.calorieRange || { min: 400, max: 600 },
       creativityLevel: requestBody.creativityLevel || 'simple',
       assemblyToRecipeRatio: requestBody.assemblyToRecipeRatio || 60,
+      availableIngredients: requestBody.availableIngredients || [], // Pantry ingredients
       symptomEnhancement // Add symptom enhancement to preferences
     };
 
