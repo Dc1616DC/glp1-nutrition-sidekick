@@ -82,15 +82,15 @@ const importMeals = async () => {
     console.log(`Found ${mealsJson.length} meals in the spreadsheet.`);
 
     // --- 3. Loop through each meal and upload it ---
-    const mealsCollection = db.collection('meals');
+    const mealsCollection = db.collection('mealTemplates');
     for (const meal of mealsJson as any[]) {
-      if (!meal.Name || typeof meal.Name !== 'string' || meal.Name.trim() === '') {
+      if (!meal['Recipe Name'] || typeof meal['Recipe Name'] !== 'string' || meal['Recipe Name'].trim() === '') {
         continue;
       }
-      console.log(`Processing meal: "${meal.Name}"`);
+      console.log(`Processing meal: "${meal['Recipe Name']}"`);
 
       const mealData = {
-        name: meal.Name.trim(),
+        name: meal['Recipe Name'].trim(),
         category: meal.Category?.trim() || 'Snack',
         ingredients: (meal.Ingredients || '').split(',').map((item: string) => item.trim()),
         instructions: (meal.Instructions || '').split('.').map((item: string) => item.trim()).filter(Boolean),

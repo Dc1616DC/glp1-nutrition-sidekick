@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { cacheService } from './cacheService';
 
 // Types for Spoonacular API responses
 interface SpoonacularNutrients {
@@ -450,6 +451,17 @@ class SpoonacularService {
    */
   private async getRecipeDetails(recipeId: number): Promise<SpoonacularRecipeDetail> {
     try {
+      // Check cache first
+      const cachedRecipe = await cacheService.getCachedSpoonacularResponse(
+        'recipe-details',
+        { recipeId }
+      );
+      
+      if (cachedRecipe) {
+        console.log(`🎯 Cache hit for recipe ${recipeId}`);
+        return cachedRecipe;
+      }
+      
       const response = await axios.get<SpoonacularRecipeDetail>(
         `${this.baseUrl}/recipes/${recipeId}/information`,
         {
@@ -462,6 +474,14 @@ class SpoonacularService {
         }
       );
 
+      // Cache the successful response
+      await cacheService.cacheSpoonacularResponse(
+        'recipe-details',
+        { recipeId },
+        response.data,
+        60 * 60 * 24 * 7 // Cache for 7 days
+      );
+      
       return response.data;
     } catch (error) {
       console.error(`Error fetching recipe details for ID ${recipeId}:`, error);

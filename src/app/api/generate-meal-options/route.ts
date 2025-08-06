@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spoonacularService } from '../../../services/spoonacularService';
 import { symptomMealService } from '../../../services/symptomMealService';
+import { cacheService } from '../../../services/cacheService';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
@@ -49,6 +50,24 @@ export async function POST(request: NextRequest) {
       previousMeals: previousMeals.length
     });
 
+    // Check cache first
+    const cacheKey = {
+      mealType,
+      dietaryRestrictions,
+      cuisineType,
+      proteinSource,
+      cookingMethod,
+      equipmentAvailable,
+      minProtein,
+      minFiber,
+      maxCalories,
+      maxReadyTime,
+      surpriseMe,
+      mealPrepOnly,
+      avoidIngredients,
+      previousMealsCount: previousMeals.length
+    };
+    
     // Get user ID from authorization header for symptom integration
     let userId = null;
     let symptomEnhancement = '';
@@ -67,6 +86,21 @@ export async function POST(request: NextRequest) {
         const token = authHeader.split('Bearer ')[1];
         const decodedToken = await getAuth().verifyIdToken(token);
         userId = decodedToken.uid;
+        
+        // Check cache with user context
+        const cachedResult = await cacheService.getCachedMealGeneration({
+          preferences: cacheKey,
+          mealType,
+          userId
+        });
+        
+        if (cachedResult && cachedResult.meals) {
+          console.log('🎯 Cache hit - returning cached meals');
+          return NextResponse.json({
+            ...cachedResult,
+            cached: true
+          });
+        }
         
         // Get symptom-based meal preferences
         console.log('🔍 Analyzing symptoms for user:', userId);
@@ -114,10 +148,21 @@ export async function POST(request: NextRequest) {
 
     console.log(`Successfully generated ${validatedMeals.length} meal options`);
 
-    return NextResponse.json({ 
+    const result = { 
       meals: validatedMeals, 
       symptomOptimized: !!symptomEnhancement 
-    });
+    };
+    
+    // Cache successful results
+    if (validatedMeals.length > 0) {
+      await cacheService.cacheMealGeneration(
+        { preferences: cacheKey, mealType, userId },
+        result
+      );
+      console.log('💾 Cached meal generation results');
+    }
+    
+    return NextResponse.json(result);
 
   } catch (error) {
     console.error('Error in /api/generate-meal-options:', error);

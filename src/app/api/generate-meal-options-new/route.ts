@@ -4,6 +4,7 @@ import { spoonacularNutritionService } from '../../../services/spoonacularNutrit
 import { nutritionValidationService } from '../../../services/nutritionValidationNew';
 import { curatedRecipeService } from '../../../services/curatedRecipes';
 import { symptomMealService } from '../../../services/symptomMealService';
+import { cacheService } from '../../../services/cacheService';
 import { MealPreferences, Recipe } from '../../../types/recipe';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
@@ -72,9 +73,21 @@ export async function POST(request: NextRequest) {
       return await generateCuratedMeals(preferences);
     }
 
-    // TODO: Add Firestore caching here
-    // const cacheKey = hashPreferences(preferences);
-    // Check cache first, return if hit
+    // Check cache first
+    const cachedResult = await cacheService.getCachedMealGeneration({
+      preferences,
+      mealType: preferences.mealType,
+      userId
+    });
+    
+    if (cachedResult) {
+      console.log('🎯 Cache hit - returning cached meal generation');
+      return NextResponse.json({
+        ...cachedResult,
+        cached: true,
+        generationTime: 0
+      });
+    }
 
     let generatedRecipes: Recipe[] = [];
 
@@ -145,19 +158,26 @@ export async function POST(request: NextRequest) {
         throw new Error('No recipes passed validation');
       }
 
-      // TODO: Cache successful results in Firestore
-      
       const duration = Date.now() - startTime;
       console.log(`✅ Successfully generated ${validatedRecipes.length} GLP-1 recipes in ${duration}ms`);
       
-      return NextResponse.json({ 
+      const result = { 
         success: true,
         meals: validatedRecipes,
         source: 'grok-estimates',
         generationTime: duration,
         symptomOptimized: !!symptomEnhancement,
         disclaimer: '⚠️ Nutrition values are AI-generated estimates and may not be precise. Please verify against nutrition labels for exact values.'
-      });
+      };
+      
+      // Cache successful results
+      await cacheService.cacheMealGeneration(
+        { preferences, mealType: preferences.mealType, userId },
+        result
+      );
+      console.log('💾 Cached meal generation results');
+      
+      return NextResponse.json(result);
 
     } catch (generationError) {
       console.error('❌ Recipe generation failed:', generationError);
