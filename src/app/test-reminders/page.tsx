@@ -242,3 +242,291 @@ export default function TestRemindersPage() {
     </div>
   );
 }
+      router.push('/signin?redirect=test-reminders');
+    }
+  }, [user, loading, router]);
+  
+  // Clean up reminders on unmount
+  useEffect(() => {
+    return () => {
+      activeReminders.forEach(reminder => {
+        cancelScheduledNotification(reminder.timeoutId);
+      });
+    };
+  }, [activeReminders]);
+  
+  // Handle enabling notifications
+  const handleEnableNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      setFeedback({ type: 'info', message: 'Requesting notification permission...' });
+      
+      const result = await requestNotificationPermission(user.uid);
+      setNotificationStatus(result.status);
+      
+      if (result.status === 'granted') {
+        setFeedback({ 
+          type: 'success', 
+          message: 'Notification permission granted! You can now receive notifications.' 
+        });
+      } else if (result.status === 'denied') {
+        setFeedback({ 
+          type: 'error', 
+          message: 'Notification permission denied. Please enable notifications in your browser settings.' 
+        });
+      } else if (result.status === 'error') {
+        setFeedback({ 
+          type: 'error', 
+          message: `Error requesting permission: ${result.error?.message || 'Unknown error'}` 
+        });
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      setFeedback({ 
+        type: 'error', 
+        message: 'Failed to enable notifications. Please try again.' 
+      });
+    }
+  };
+  
+  // Handle sending a test notification
+  const handleSendTestNotification = async () => {
+    try {
+      setFeedback({ type: 'info', message: 'Sending test notification...' });
+      
+      const success = await showNotification(
+        'Test Notification',
+        {
+          body: 'This is a test notification from the GLP-1 Nutrition Companion app.',
+          icon: '/icons/icon-192x192.png',
+          requireInteraction: true
+        }
+      );
+      
+      if (success) {
+        setFeedback({ 
+          type: 'success', 
+          message: 'Test notification sent! Check your notifications.' 
+        });
+      } else {
+        setFeedback({ 
+          type: 'error', 
+          message: 'Failed to send notification. Make sure notifications are enabled.' 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      setFeedback({ 
+        type: 'error', 
+        message: 'Error sending notification. Please try again.' 
+      });
+    }
+  };
+  
+  // Handle scheduling a reminder for 1 minute in the future
+  const handleScheduleReminder = () => {
+    try {
+      // Create a reminder for 1 minute from now
+      const now = new Date();
+      const oneMinuteFromNow = new Date(now.getTime() + 60000);
+      
+      const hours = oneMinuteFromNow.getHours().toString().padStart(2, '0');
+      const minutes = oneMinuteFromNow.getMinutes().toString().padStart(2, '0');
+      const timeString = `${hours}:${minutes}`;
+      
+      const reminder: MealReminder = {
+        id: `test-${Date.now()}`,
+        mealType: 'snack',
+        time: timeString,
+        title: '1-Minute Test Reminder',
+        body: 'This reminder was scheduled 1 minute ago.',
+        enabled: true
+      };
+      
+      // Schedule the notification
+      const timeoutId = scheduleLocalNotification(reminder);
+      
+      // Add to active reminders
+      setActiveReminders(prev => [
+        ...prev,
+        {
+          id: reminder.id,
+          timeoutId,
+          scheduledTime: oneMinuteFromNow,
+          mealType: 'Test Snack'
+        }
+      ]);
+      
+      setFeedback({ 
+        type: 'success', 
+        message: `Reminder scheduled for ${timeString}` 
+      });
+    } catch (error) {
+      console.error('Error scheduling reminder:', error);
+      setFeedback({ 
+        type: 'error', 
+        message: 'Failed to schedule reminder. Please try again.' 
+      });
+    }
+  };
+  
+  // Handle canceling a reminder
+  const handleCancelReminder = (id: string, timeoutId: number) => {
+    cancelScheduledNotification(timeoutId);
+    setActiveReminders(prev => prev.filter(r => r.id !== id));
+    setFeedback({ 
+      type: 'info', 
+      message: 'Reminder canceled' 
+    });
+  };
+  
+  // If still checking authentication, show loading
+  if (loading) {
+    return <div className="text-center py-10">Loading...</div>;
+  }
+  
+  // If user is not authenticated, don't render the page content
+  if (!user) {
+    return <div className="text-center py-10">Please sign in to access this page.</div>;
+  }
+  
+  return (
+    <div className="max-w-3xl mx-auto p-4 sm:p-6">
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">Test Notification Reminders</h1>
+      
+      {/* Explanation */}
+      <div className="bg-blue-50 p-4 rounded-lg mb-8">
+        <h2 className="text-xl font-semibold text-blue-800 mb-2">About This Test Page</h2>
+        <p className="text-gray-700 mb-2">
+          This page demonstrates simple browser notifications without using Firebase Cloud Messaging.
+          You can test basic notification functionality here.
+        </p>
+        <p className="text-gray-700">
+          <Link href="/reminders" className="text-blue-600 hover:underline">
+            Return to the main Reminders page
+          </Link> when you're done testing.
+        </p>
+      </div>
+      
+      {/* Notification Status */}
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-2">Notification Status</h2>
+        <div className="flex items-center space-x-2 mb-4">
+          <span className="text-gray-700">Current permission:</span>
+          <span className={`font-medium ${
+            notificationStatus === 'granted' ? 'text-green-600' :
+            notificationStatus === 'denied' ? 'text-red-600' :
+            notificationStatus === 'unsupported' ? 'text-gray-500' :
+            'text-yellow-600'
+          }`}>
+            {notificationStatus}
+          </span>
+        </div>
+        
+        {/* Enable Notifications Button */}
+        <button
+          onClick={handleEnableNotifications}
+          disabled={notificationStatus === 'granted' || notificationStatus === 'unsupported'}
+          className={`px-4 py-2 rounded-md text-white font-medium ${
+            notificationStatus === 'granted'
+              ? 'bg-green-500 cursor-default'
+              : notificationStatus === 'unsupported'
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-500 hover:bg-blue-600'
+          }`}
+        >
+          {notificationStatus === 'granted'
+            ? 'Notifications Enabled'
+            : notificationStatus === 'unsupported'
+            ? 'Notifications Not Supported'
+            : 'Enable Notifications'}
+        </button>
+      </div>
+      
+      {/* Test Actions */}
+      <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">Test Actions</h2>
+        
+        <div className="space-y-4">
+          {/* Send Test Notification */}
+          <div>
+            <button
+              onClick={handleSendTestNotification}
+              disabled={notificationStatus !== 'granted'}
+              className={`px-4 py-2 rounded-md text-white font-medium ${
+                notificationStatus === 'granted'
+                  ? 'bg-purple-500 hover:bg-purple-600'
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Send Test Notification
+            </button>
+            <p className="text-sm text-gray-500 mt-1">
+              Sends an immediate notification to test if notifications are working.
+            </p>
+          </div>
+          
+          {/* Schedule 1-Minute Reminder */}
+          <div>
+            <button
+              onClick={handleScheduleReminder}
+              disabled={notificationStatus !== 'granted'}
+              className={`px-4 py-2 rounded-md text-white font-medium ${
+                notificationStatus === 'granted'
+                  ? 'bg-indigo-500 hover:bg-indigo-600'
+                  : 'bg-gray-400 cursor-not-allowed'
+              }`}
+            >
+              Schedule 1-Minute Reminder
+            </button>
+            <p className="text-sm text-gray-500 mt-1">
+              Schedules a notification to appear 1 minute from now.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Feedback Messages */}
+      {feedback.message && (
+        <div className={`p-3 rounded-md mb-6 ${
+          feedback.type === 'success' ? 'bg-green-100 text-green-800' : 
+          feedback.type === 'error' ? 'bg-red-100 text-red-800' :
+          'bg-blue-100 text-blue-800'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
+      
+      {/* Active Reminders */}
+      {activeReminders.length > 0 && (
+        <div className="bg-white p-4 rounded-lg shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">Active Reminders</h2>
+          
+          <div className="space-y-2">
+            {activeReminders.map(reminder => (
+              <div 
+                key={reminder.id} 
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+              >
+                <div>
+                  <div className="font-medium">{reminder.mealType}</div>
+                  <div className="text-sm text-gray-500">
+                    Scheduled for: {reminder.scheduledTime.toLocaleTimeString()}
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => handleCancelReminder(reminder.id, reminder.timeoutId)}
+                  className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

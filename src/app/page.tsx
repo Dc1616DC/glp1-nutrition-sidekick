@@ -113,6 +113,29 @@ export default function Home() {
         </section>
       )}
 
+      {/* Quick Symptom Log Widget for authenticated users */}
+      {!loading && user && (
+        <section className="my-4 px-4">
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 max-w-md mx-auto">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800">How are you feeling?</h3>
+                <p className="text-sm text-gray-600 mt-1">Track symptoms for personalized tips</p>
+              </div>
+              <Link
+                href="/symptoms"
+                className="bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center gap-2"
+              >
+                <span>Quick Log</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Features Section */}
       <section className="py-12 bg-gray-50 -mx-4 px-4">
         <h2 className="text-3xl font-bold text-gray-800 mb-8">

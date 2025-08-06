@@ -33,7 +33,7 @@ service cloud.firestore {
     }
     
     // Meals - all authenticated users can read, but only admins can write
-    match /meals/{mealId} {
+    match /mealTemplates/{mealId} {
       allow read: if isSignedIn();
       // Only allow writes from admin SDK or server (Firebase Functions)
       allow write: if false; // Restrict direct writes - use Firebase Functions instead

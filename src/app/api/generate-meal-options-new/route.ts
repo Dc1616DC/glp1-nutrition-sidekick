@@ -3,7 +3,10 @@ import { grokService } from '../../../services/grokService';
 import { spoonacularNutritionService } from '../../../services/spoonacularNutritionService';
 import { nutritionValidationService } from '../../../services/nutritionValidationNew';
 import { curatedRecipeService } from '../../../services/curatedRecipes';
+import { symptomMealService } from '../../../services/symptomMealService';
 import { MealPreferences, Recipe } from '../../../types/recipe';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 // Increase timeout for comprehensive meal generation
 export const maxDuration = 90;
@@ -14,6 +17,39 @@ export async function POST(request: NextRequest) {
   try {
     const requestBody = await request.json();
     console.log('🍽️ New meal generation request:', requestBody);
+    
+    // Get user ID from authorization header for symptom integration
+    let userId = null;
+    let symptomEnhancement = '';
+    
+    try {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Initialize Firebase Admin if not already initialized
+        if (getApps().length === 0) {
+          const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
+          initializeApp({
+            credential: cert(serviceAccount)
+          });
+        }
+        
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await getAuth().verifyIdToken(token);
+        userId = decodedToken.uid;
+        
+        // Get symptom-based meal preferences
+        console.log('🔍 Analyzing symptoms for user:', userId);
+        symptomEnhancement = await symptomMealService.createSymptomPromptEnhancement(userId);
+        
+        if (symptomEnhancement) {
+          console.log('✅ Added symptom-based optimizations to meal generation');
+        }
+      }
+    } catch (authError) {
+      console.log('ℹ️ No valid auth token, proceeding without symptom optimization:', authError);
+      console.log('🔍 Auth header received:', request.headers.get('authorization') ? 'Present' : 'Missing');
+      console.log('🔍 Firebase Admin SDK configured:', process.env.FIREBASE_ADMIN_SDK ? 'Yes' : 'No');
+    }
     
     // Parse enhanced preferences
     const preferences: any = {
@@ -26,7 +62,8 @@ export async function POST(request: NextRequest) {
       fiberTarget: requestBody.fiberTarget || 4,
       calorieRange: requestBody.calorieRange || { min: 400, max: 600 },
       creativityLevel: requestBody.creativityLevel || 'simple',
-      assemblyToRecipeRatio: requestBody.assemblyToRecipeRatio || 60
+      assemblyToRecipeRatio: requestBody.assemblyToRecipeRatio || 60,
+      symptomEnhancement // Add symptom enhancement to preferences
     };
 
     // Check if we should use fallback (for testing or API failures)
@@ -118,6 +155,7 @@ export async function POST(request: NextRequest) {
         meals: validatedRecipes,
         source: 'grok-estimates',
         generationTime: duration,
+        symptomOptimized: !!symptomEnhancement,
         disclaimer: '⚠️ Nutrition values are AI-generated estimates and may not be precise. Please verify against nutrition labels for exact values.'
       });
 
@@ -161,6 +199,7 @@ async function generateCuratedMeals(preferences: MealPreferences) {
       success: true,
       meals,
       source: 'curated',
+      symptomOptimized: !!symptomEnhancement,
       notice: 'Using curated recipes due to AI generation issues. These are manually verified GLP-1 friendly recipes.',
       fallback: true
     });

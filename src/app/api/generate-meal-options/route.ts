@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { spoonacularService } from '../../../services/spoonacularService';
+import { symptomMealService } from '../../../services/symptomMealService';
+import { getAuth } from 'firebase-admin/auth';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 export async function POST(request: NextRequest) {
   let mealType = 'lunch'; // Default fallback
@@ -46,7 +49,38 @@ export async function POST(request: NextRequest) {
       previousMeals: previousMeals.length
     });
 
-    // Generate multiple meal options using Spoonacular
+    // Get user ID from authorization header for symptom integration
+    let userId = null;
+    let symptomEnhancement = '';
+    
+    try {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Initialize Firebase Admin if not already initialized
+        if (getApps().length === 0) {
+          const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
+          initializeApp({
+            credential: cert(serviceAccount)
+          });
+        }
+        
+        const token = authHeader.split('Bearer ')[1];
+        const decodedToken = await getAuth().verifyIdToken(token);
+        userId = decodedToken.uid;
+        
+        // Get symptom-based meal preferences
+        console.log('🔍 Analyzing symptoms for user:', userId);
+        symptomEnhancement = await symptomMealService.createSymptomPromptEnhancement(userId);
+        
+        if (symptomEnhancement) {
+          console.log('✅ Added symptom-based optimizations to meal generation');
+        }
+      }
+    } catch (authError) {
+      console.log('ℹ️ No valid auth token, proceeding without symptom optimization:', authError);
+    }
+
+    // Generate multiple meal options using Spoonacular with symptom enhancement
     const meals = await spoonacularService.generateMultipleMealOptions({
       mealType,
       dietaryRestrictions,
@@ -54,7 +88,7 @@ export async function POST(request: NextRequest) {
       proteinSource,
       avoidIngredients,
       previousMeals,
-      freeTextPrompt,
+      freeTextPrompt: (freeTextPrompt || '') + symptomEnhancement, // Add symptom enhancement
       minProtein,
       minFiber,
       maxCalories,
@@ -80,7 +114,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`Successfully generated ${validatedMeals.length} meal options`);
 
-    return NextResponse.json({ meals: validatedMeals });
+    return NextResponse.json({ 
+      meals: validatedMeals, 
+      symptomOptimized: !!symptomEnhancement 
+    });
 
   } catch (error) {
     console.error('Error in /api/generate-meal-options:', error);

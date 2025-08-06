@@ -258,11 +258,14 @@ Return as JSON with this structure:
       : '';
     
     const assemblyRatio = preferences.assemblyToRecipeRatio || 60;
+    const symptomEnhancement = preferences.symptomEnhancement || '';
 
     return `
 As a popular chef specializing in GLP-1-friendly meals, create ${preferences.numOptions || 2} appealing ${preferences.mealType} options that make eating enough feel enjoyable and satisfying.
 
 ${allergiesText}
+
+${symptomEnhancement}
 
 CHEF'S MISSION: Transform simple, healthy ingredients into "doable decadence" - meals that feel indulgent yet support GLP-1 goals.
 
@@ -516,6 +519,51 @@ Make every meal sound delicious and feel like a special treat while meeting all 
       amount: 1,
       unit: 'serving'
     };
+  }
+
+  /**
+   * Generate RD-backed symptom tip for GLP-1 users
+   */
+  async generateSymptomTip({ symptom, severity }: { symptom: string; severity: number }): Promise<string> {
+    const prompt = `As a registered dietitian specializing in GLP-1 medication support, provide a gentle, practical tip for a user experiencing ${symptom} at severity ${severity}/10.
+
+Focus on:
+- Intuitive eating approaches (not restrictive)
+- Nourishment and comfort
+- Practical solutions that work with GLP-1 medications
+- Emphasis on fiber and protein when appropriate
+- Hydration and meal timing
+
+Keep the tip concise (2-3 sentences max) and compassionate. Avoid medical advice - focus on nutritional comfort strategies.
+
+Examples:
+- For mild nausea: "Try sipping ginger tea between meals and eating smaller, more frequent portions. Focus on bland, high-protein foods like Greek yogurt or scrambled eggs."
+- For constipation: "Aim for warm liquids in the morning and gradually increase fiber-rich foods like berries and cooked vegetables. Stay hydrated with at least 8 glasses of water daily."`;
+
+    try {
+      const response = await grok.chat.completions.create({
+        model: 'grok-2-1212',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a compassionate registered dietitian helping GLP-1 medication users manage symptoms through gentle nutrition strategies.'
+          },
+          { 
+            role: 'user', 
+            content: prompt 
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      });
+
+      const content = response.choices[0].message.content;
+      return content || 'Stay hydrated and eat small, frequent meals. Consider keeping a food diary to identify triggers.';
+
+    } catch (error) {
+      console.error('Error generating symptom tip:', error);
+      return 'Focus on gentle, nourishing foods and stay well-hydrated. Contact your healthcare provider if symptoms persist.';
+    }
   }
 
   /**

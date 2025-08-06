@@ -5,6 +5,7 @@ import AllergiesFilter from './AllergiesFilter';
 import { clientNutritionService } from '../services/clientNutritionService';
 import InsightNudge from './InsightNudge';
 import NutritionInsights from './NutritionInsights';
+import { useAuth } from '../context/AuthContext';
 
 interface MealPreferences {
   mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -67,6 +68,7 @@ interface GeneratedMeal {
 }
 
 export default function AIMealGenerator() {
+  const { user } = useAuth();
   const [preferences, setPreferences] = useState<MealPreferences>({
     mealType: 'lunch',
     maxCookingTime: 30,
@@ -86,6 +88,7 @@ export default function AIMealGenerator() {
     type: 'lowProtein' | 'lowFiber' | null;
     mealData?: { protein: number; fiber: number; calories: number };
   }>({ type: null });
+  const [symptomOptimized, setSymptomOptimized] = useState(false);
   const [showInsightModal, setShowInsightModal] = useState<string | null>(null);
 
   // Educational tips for GLP-1 users
@@ -187,11 +190,23 @@ export default function AIMealGenerator() {
     setIsGenerating(true);
     
     try {
+      // Get auth token for symptom-based meal optimization
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+        } catch (error) {
+          console.log('Could not get auth token for symptom optimization');
+        }
+      }
+      
       const response = await fetch('/api/generate-meal-options-new', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           mealType: preferences.mealType,
           dietaryRestrictions: preferences.dietaryRestrictions,
@@ -230,6 +245,9 @@ export default function AIMealGenerator() {
       
       setGeneratedMeals(meals);
       setSelectedMealIndex(0); // Default to first meal
+      
+      // Check if symptom optimization was applied
+      setSymptomOptimized(data.symptomOptimized || false);
       
       // Show user feedback and disclaimer about nutrition estimates
       if (data.source === 'grok-estimates') {
@@ -496,6 +514,21 @@ export default function AIMealGenerator() {
         {/* Generated Meals Display - Inside Generator Tab */}
         {selectedMeal && (
         <div className="bg-white rounded-lg shadow-lg p-6">
+          {/* Symptom Optimization Indicator */}
+          {symptomOptimized && (
+            <div className="mb-4 bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-purple-600">🎯</span>
+                <span className="text-sm font-medium text-purple-800">
+                  Symptom-Optimized Meals
+                </span>
+              </div>
+              <p className="text-xs text-purple-700 mt-1">
+                Personalized based on your recent symptom patterns for better comfort
+              </p>
+            </div>
+          )}
+
           {/* Meal Selection Tabs (when multiple meals available) */}
           {generatedMeals.length > 1 && (
             <div className="mb-6">

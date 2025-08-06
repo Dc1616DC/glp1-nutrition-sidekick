@@ -24,6 +24,7 @@ export default function Navbar() {
     { href: '/calculator', label: 'Calculator' },
     { href: '/meals', label: 'Meals' },
     { href: '/meal-generator', label: 'AI Meal Generator' },
+    { href: '/symptoms', label: 'Symptoms' }, // New symptom tracker
     { href: '/education', label: 'Education' },
     { href: '/reminders', label: 'Meal Reminders' }, // Point to dashboard that works with medical system
     { href: '/settings', label: '🌙 Evening Toolkit' }, // Evening Toolkit access
