@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spoonacularService } from '../../../services/spoonacularService';
 import { symptomMealService } from '../../../services/symptomMealService';
 import { cacheService } from '../../../services/cacheService';
+import { subscriptionService } from '../../../services/subscriptionService';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
@@ -87,6 +88,17 @@ export async function POST(request: NextRequest) {
         const decodedToken = await getAuth().verifyIdToken(token);
         userId = decodedToken.uid;
         
+        // Check if user has premium access for AI meal generation
+        const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
+        if (!hasPremiumAccess) {
+          return NextResponse.json({
+            error: 'Premium subscription required',
+            message: 'AI meal generation is available for premium subscribers only.',
+            upgradeUrl: '/analytics',
+            feature: 'ai_meal_generation'
+          }, { status: 403 });
+        }
+        
         // Check cache with user context
         const cachedResult = await cacheService.getCachedMealGeneration({
           preferences: cacheKey,
@@ -111,7 +123,14 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (authError) {
-      console.log('ℹ️ No valid auth token, proceeding without symptom optimization:', authError);
+      console.log('ℹ️ No valid auth token:', authError);
+      // AI meal generation requires premium subscription, which requires authentication
+      return NextResponse.json({
+        error: 'Authentication required',
+        message: 'Please sign in to access AI meal generation. This feature requires a premium subscription.',
+        upgradeUrl: '/analytics',
+        feature: 'ai_meal_generation'
+      }, { status: 401 });
     }
 
     // Generate multiple meal options using Spoonacular with symptom enhancement

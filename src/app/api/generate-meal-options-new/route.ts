@@ -5,6 +5,7 @@ import { nutritionValidationService } from '../../../services/nutritionValidatio
 import { curatedRecipeService } from '../../../services/curatedRecipes';
 import { symptomMealService } from '../../../services/symptomMealService';
 import { cacheService } from '../../../services/cacheService';
+import { subscriptionService } from '../../../services/subscriptionService';
 import { MealPreferences, Recipe } from '../../../types/recipe';
 import { getAuth } from 'firebase-admin/auth';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
@@ -38,6 +39,17 @@ export async function POST(request: NextRequest) {
         const decodedToken = await getAuth().verifyIdToken(token);
         userId = decodedToken.uid;
         
+        // Check if user has premium access for AI meal generation
+        const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
+        if (!hasPremiumAccess) {
+          return NextResponse.json({
+            error: 'Premium subscription required',
+            message: 'AI meal generation is available for premium subscribers only.',
+            upgradeUrl: '/analytics', // Where they can upgrade
+            feature: 'ai_meal_generation'
+          }, { status: 403 });
+        }
+        
         // Get symptom-based meal preferences
         console.log('🔍 Analyzing symptoms for user:', userId);
         symptomEnhancement = await symptomMealService.createSymptomPromptEnhancement(userId);
@@ -47,9 +59,14 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (authError) {
-      console.log('ℹ️ No valid auth token, proceeding without symptom optimization:', authError);
-      console.log('🔍 Auth header received:', request.headers.get('authorization') ? 'Present' : 'Missing');
-      console.log('🔍 Firebase Admin SDK configured:', process.env.FIREBASE_ADMIN_SDK ? 'Yes' : 'No');
+      console.log('ℹ️ No valid auth token:', authError);
+      // AI meal generation requires premium subscription, which requires authentication
+      return NextResponse.json({
+        error: 'Authentication required',
+        message: 'Please sign in to access AI meal generation. This feature requires a premium subscription.',
+        upgradeUrl: '/analytics',
+        feature: 'ai_meal_generation'
+      }, { status: 401 });
     }
     
     // Parse enhanced preferences

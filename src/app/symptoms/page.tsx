@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from '../../context/AuthContext';
+import { subscriptionService } from '../../services/subscriptionService';
 import SymptomTracker from '../../components/SymptomTracker';
 import SymptomTrends from '../../components/SymptomTrends';
 import SymptomMealSuggestions from '../../components/SymptomMealSuggestions';
@@ -37,6 +38,7 @@ export default function SymptomsPage() {
   const [showTracker, setShowTracker] = useState(false);
   const [activeTab, setActiveTab] = useState<'logs' | 'trends'>('logs');
   const [weeklyAverage, setWeeklyAverage] = useState<number | null>(null);
+  const [hasPremiumAccess, setHasPremiumAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -46,8 +48,21 @@ export default function SymptomsPage() {
       return;
     }
 
+    checkPremiumAccess();
     fetchRecentLogs();
   }, [user, authLoading, router]);
+
+  const checkPremiumAccess = async () => {
+    if (!user) return;
+    
+    try {
+      const hasAccess = await subscriptionService.hasPremiumAccess(user.uid);
+      setHasPremiumAccess(hasAccess);
+    } catch (error) {
+      console.error('Error checking premium access:', error);
+      setHasPremiumAccess(false);
+    }
+  };
 
   const fetchRecentLogs = async () => {
     if (!user) return;
@@ -129,6 +144,57 @@ export default function SymptomsPage() {
 
   if (!user) {
     return null;
+  }
+
+  // Premium Access Gate
+  if (hasPremiumAccess === false) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-800">Symptom Tracking</h1>
+          <p className="mt-2 text-lg text-gray-600">
+            Advanced symptom tracking and analysis for premium subscribers
+          </p>
+        </div>
+
+        <div className="bg-gradient-to-r from-purple-500 to-blue-600 rounded-lg p-8 text-white text-center">
+          <div className="text-4xl mb-4">🔬</div>
+          <h2 className="text-2xl font-bold mb-4">Premium Feature</h2>
+          <p className="text-purple-100 mb-6">
+            Symptom tracking with AI-powered insights and pattern analysis is available for premium subscribers only.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-left">
+            <div className="bg-white/10 rounded-lg p-4">
+              <h3 className="font-semibold mb-2">✨ What You Get:</h3>
+              <ul className="text-sm space-y-1">
+                <li>• Track 9 common GLP-1 symptoms</li>
+                <li>• AI-powered symptom tips</li>
+                <li>• Pattern recognition & trends</li>
+                <li>• Meal correlation analysis</li>
+              </ul>
+            </div>
+            <div className="bg-white/10 rounded-lg p-4">
+              <h3 className="font-semibold mb-2">📊 Plus Analytics:</h3>
+              <ul className="text-sm space-y-1">
+                <li>• Advanced progress insights</li>
+                <li>• Predictive symptom modeling</li>
+                <li>• Healthcare provider reports</li>
+                <li>• Personalized recommendations</li>
+              </ul>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => router.push('/analytics')}
+            className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+          >
+            Upgrade to Premium - $9.99/mo
+          </button>
+          <p className="text-xs text-purple-200 mt-2">7-day free trial • Cancel anytime</p>
+        </div>
+      </div>
+    );
   }
 
   return (
