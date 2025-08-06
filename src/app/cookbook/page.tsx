@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { subscriptionService } from '../../services/subscriptionService';
 import { savedMealsService, SavedMeal } from '../../services/savedMealsService';
+import { shoppingListService } from '../../services/shoppingListService';
 import { useRouter } from 'next/navigation';
 
 export default function CookbookPage() {
@@ -90,7 +91,24 @@ export default function CookbookPage() {
     }
   };
 
-  // Removed rating functionality - keeping it simple
+  const createShoppingListFromMeal = async (meal: SavedMeal) => {
+    if (!user) return;
+    
+    try {
+      const shoppingList = await shoppingListService.createListFromMeal(
+        user.uid,
+        meal.id,
+        meal.title,
+        meal.ingredients
+      );
+      
+      alert(`Shopping list created: "${shoppingList.name}"`);
+      router.push('/shopping-list');
+    } catch (error) {
+      console.error('Error creating shopping list:', error);
+      alert('Failed to create shopping list');
+    }
+  };
 
   // Filter and sort meals
   const filteredMeals = savedMeals
@@ -376,6 +394,13 @@ export default function CookbookPage() {
                   
                   <div className="flex space-x-2">
                     <button
+                      onClick={() => createShoppingListFromMeal(meal)}
+                      className="text-green-600 hover:text-green-800 text-sm"
+                      title="Create shopping list from this meal"
+                    >
+                      🛒 List
+                    </button>
+                    <button
                       onClick={() => handleDeleteMeal(meal.id)}
                       className="text-red-600 hover:text-red-800 text-sm"
                     >
@@ -485,6 +510,12 @@ export default function CookbookPage() {
                 </div>
                 
                 <div className="flex space-x-3">
+                  <button
+                    onClick={() => createShoppingListFromMeal(selectedMeal)}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  >
+                    🛒 Create Shopping List
+                  </button>
                   <button
                     onClick={() => {/* TODO: Add regenerate similar functionality */}}
                     className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
