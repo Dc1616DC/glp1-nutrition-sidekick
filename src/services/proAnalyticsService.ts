@@ -12,16 +12,7 @@ export interface SymptomPattern {
   trend: 'improving' | 'worsening' | 'stable';
 }
 
-export interface MealEffectiveness {
-  mealType: string;
-  protein: number;
-  fiber: number;
-  calories: number;
-  symptomReduction: number; // percentage reduction in symptoms after this meal
-  satisfactionScore: number; // how well it prevents hunger/cravings
-  toleranceScore: number; // how well it's tolerated (less nausea, bloating)
-  optimalTiming: string; // best time to eat this meal type
-}
+// Removed MealEffectiveness - we don't track consumed meals
 
 export interface ProgressInsight {
   metric: string;
@@ -54,12 +45,10 @@ export interface PredictiveModel {
 
 export interface ComprehensiveAnalytics {
   symptomPatterns: SymptomPattern[];
-  mealEffectiveness: MealEffectiveness[];
   progressInsights: ProgressInsight[];
   predictiveModel: PredictiveModel;
   personalizedScore: {
     overall: number;
-    nutrition: number;
     symptomManagement: number;
     consistency: number;
   };
@@ -71,20 +60,15 @@ class ProAnalyticsService {
    */
   async generateComprehensiveAnalytics(userId: string, timeRange: number = 30): Promise<ComprehensiveAnalytics> {
     try {
-      const [symptomLogs, mealLogs] = await Promise.all([
-        this.fetchSymptomLogs(userId, timeRange),
-        this.fetchMealLogs(userId, timeRange)
-      ]);
+      const symptomLogs = await this.fetchSymptomLogs(userId, timeRange);
 
       const symptomPatterns = this.analyzeSymptomPatterns(symptomLogs);
-      const mealEffectiveness = await this.analyzeMealEffectiveness(symptomLogs, mealLogs);
-      const progressInsights = this.calculateProgressInsights(symptomLogs, mealLogs);
-      const predictiveModel = this.buildPredictiveModel(symptomLogs, mealLogs);
-      const personalizedScore = this.calculatePersonalizedScore(symptomLogs, mealLogs);
+      const progressInsights = this.calculateProgressInsights(symptomLogs);
+      const predictiveModel = this.buildPredictiveModel(symptomLogs);
+      const personalizedScore = this.calculatePersonalizedScore(symptomLogs);
 
       return {
         symptomPatterns,
-        mealEffectiveness,
         progressInsights,
         predictiveModel,
         personalizedScore
@@ -119,14 +103,7 @@ class ProAnalyticsService {
     return logs;
   }
 
-  /**
-   * Fetch meal logs for correlation analysis
-   */
-  private async fetchMealLogs(userId: string, days: number): Promise<any[]> {
-    // This would fetch from a meals collection if we had meal logging
-    // For now, we'll simulate this data or use available meal generation history
-    return [];
-  }
+  // Removed fetchMealLogs - we don't track consumed meals
 
   /**
    * Analyze symptom patterns and timing
@@ -164,50 +141,12 @@ class ProAnalyticsService {
     return Object.values(patterns).sort((a, b) => b.frequency - a.frequency);
   }
 
-  /**
-   * Analyze meal effectiveness against symptoms
-   */
-  private async analyzeMealEffectiveness(symptomLogs: any[], mealLogs: any[]): Promise<MealEffectiveness[]> {
-    // This would analyze correlation between meals and subsequent symptoms
-    // For now, return mock data based on GLP-1 best practices
-    return [
-      {
-        mealType: 'High Protein Breakfast',
-        protein: 25,
-        fiber: 6,
-        calories: 400,
-        symptomReduction: 35,
-        satisfactionScore: 85,
-        toleranceScore: 92,
-        optimalTiming: '7:00-9:00 AM'
-      },
-      {
-        mealType: 'Fiber-Rich Lunch',
-        protein: 20,
-        fiber: 8,
-        calories: 450,
-        symptomReduction: 28,
-        satisfactionScore: 78,
-        toleranceScore: 88,
-        optimalTiming: '12:00-2:00 PM'
-      },
-      {
-        mealType: 'Light Protein Dinner',
-        protein: 22,
-        fiber: 5,
-        calories: 350,
-        symptomReduction: 40,
-        satisfactionScore: 82,
-        toleranceScore: 95,
-        optimalTiming: '5:00-7:00 PM'
-      }
-    ];
-  }
+  // Removed analyzeMealEffectiveness - we don't track consumed meals
 
   /**
    * Calculate progress insights over time
    */
-  private calculateProgressInsights(symptomLogs: any[], mealLogs: any[]): ProgressInsight[] {
+  private calculateProgressInsights(symptomLogs: any[]): ProgressInsight[] {
     const insights: ProgressInsight[] = [];
     
     // Analyze symptom severity trends
@@ -253,7 +192,7 @@ class ProAnalyticsService {
   /**
    * Build predictive model for symptom risks
    */
-  private buildPredictiveModel(symptomLogs: any[], mealLogs: any[]): PredictiveModel {
+  private buildPredictiveModel(symptomLogs: any[]): PredictiveModel {
     // Analyze risk factors
     const riskFactors = [
       {
@@ -319,19 +258,17 @@ class ProAnalyticsService {
   /**
    * Calculate personalized health score
    */
-  private calculatePersonalizedScore(symptomLogs: any[], mealLogs: any[]): any {
+  private calculatePersonalizedScore(symptomLogs: any[]): any {
     const avgSeverity = this.calculateAverageSeverity(symptomLogs);
     const consistency = this.calculateConsistencyScore(symptomLogs);
     
     // Calculate scores (0-100)
     const symptomManagement = Math.max(0, 100 - (avgSeverity * 20));
-    const nutrition = 75; // Based on meal analysis when available
     const consistencyScore = consistency * 100;
-    const overall = (symptomManagement + nutrition + consistencyScore) / 3;
+    const overall = (symptomManagement + consistencyScore) / 2;
     
     return {
       overall: Math.round(overall),
-      nutrition: Math.round(nutrition),
       symptomManagement: Math.round(symptomManagement),
       consistency: Math.round(consistencyScore)
     };

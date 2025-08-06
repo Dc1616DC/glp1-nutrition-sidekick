@@ -127,22 +127,13 @@ export default function ProAnalyticsDashboard({ className = '' }: ProAnalyticsDa
       </div>
 
       {/* Personalized Health Score */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className={`p-4 rounded-lg ${getScoreBg(analytics.personalizedScore.overall)}`}>
           <div className="text-center">
             <div className={`text-3xl font-bold ${getScoreColor(analytics.personalizedScore.overall)}`}>
               {analytics.personalizedScore.overall}
             </div>
             <div className="text-sm font-medium text-gray-700">Overall Score</div>
-          </div>
-        </div>
-        
-        <div className={`p-4 rounded-lg ${getScoreBg(analytics.personalizedScore.nutrition)}`}>
-          <div className="text-center">
-            <div className={`text-2xl font-bold ${getScoreColor(analytics.personalizedScore.nutrition)}`}>
-              {analytics.personalizedScore.nutrition}
-            </div>
-            <div className="text-sm font-medium text-gray-700">Nutrition</div>
           </div>
         </div>
         
@@ -242,47 +233,7 @@ export default function ProAnalyticsDashboard({ className = '' }: ProAnalyticsDa
         )}
       </div>
 
-      {/* Meal Effectiveness Analysis */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">🍽️ Meal Effectiveness</h3>
-        
-        <div className="space-y-4">
-          {analytics.mealEffectiveness.map((meal, index) => (
-            <div key={index} className="p-4 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h4 className="font-medium text-gray-800">{meal.mealType}</h4>
-                  <p className="text-sm text-gray-600">Best time: {meal.optimalTiming}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-green-600 font-bold">
-                    {meal.symptomReduction}% symptom reduction
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Protein:</span>
-                  <span className="font-medium ml-1">{meal.protein}g</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Fiber:</span>
-                  <span className="font-medium ml-1">{meal.fiber}g</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Satisfaction:</span>
-                  <span className="font-medium ml-1">{meal.satisfactionScore}/100</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Tolerance:</span>
-                  <span className="font-medium ml-1">{meal.toleranceScore}/100</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Removed Meal Effectiveness - we don't track consumed meals */}
 
       {/* Predictive Model */}
       <div className="bg-white p-6 rounded-lg border border-gray-200">
