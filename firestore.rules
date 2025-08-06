@@ -39,6 +39,40 @@ service cloud.firestore {
       allow write: if false; // Restrict direct writes - use Firebase Functions instead
     }
     
+    // User symptoms - users can only read and write their own symptom data
+    match /userSymptoms/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+      
+      // Symptom logs subcollection
+      match /logs/{logId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+                       request.resource.data.keys().hasAll(['symptom', 'severity', 'timestamp']) &&
+                       request.resource.data.severity >= 1 &&
+                       request.resource.data.severity <= 10;
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
+    }
+    
+    // API cache collection - only server-side access
+    match /api_cache/{cacheId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn(); // In production, restrict to server-side only
+    }
+    
+    // User meal history
+    match /userMeals/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+      
+      match /history/{mealId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;
