@@ -172,8 +172,8 @@ class ShoppingListService {
         category: item.category || this.categorizeItem(item.name),
         isChecked: false,
         addedAt: new Date(),
-        mealId: item.mealId,
-        mealTitle: item.mealTitle
+        mealId: item.mealId || null,
+        mealTitle: item.mealTitle || null
       };
 
       const listRef = doc(db, 'shoppingLists', listId);
