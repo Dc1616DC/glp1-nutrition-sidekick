@@ -29,21 +29,29 @@ export async function POST(request: NextRequest) {
       console.log('🔍 Auth header present:', !!authHeader);
       
       if (authHeader && authHeader.startsWith('Bearer ')) {
-        // Initialize Firebase Admin if not already initialized
-        if (getApps().length === 0) {
-          console.log('🔥 Initializing Firebase Admin SDK...');
-          const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
-          initializeApp({
-            credential: cert(serviceAccount)
-          });
-          console.log('✅ Firebase Admin SDK initialized');
+        // TEMPORARY DEV MODE: Skip Firebase Admin token verification
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ DEV MODE: Skipping Firebase Admin token verification');
+          // Extract a fake user ID from the token (or use a test user ID)
+          userId = 'dev-user-test-id';
+          console.log('✅ Using dev user ID:', userId);
+        } else {
+          // Initialize Firebase Admin if not already initialized
+          if (getApps().length === 0) {
+            console.log('🔥 Initializing Firebase Admin SDK...');
+            const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
+            initializeApp({
+              credential: cert(serviceAccount)
+            });
+            console.log('✅ Firebase Admin SDK initialized');
+          }
+          
+          const token = authHeader.split('Bearer ')[1];
+          console.log('🎫 Verifying ID token...');
+          const decodedToken = await getAuth().verifyIdToken(token);
+          userId = decodedToken.uid;
+          console.log('✅ Token verified, user ID:', userId);
         }
-        
-        const token = authHeader.split('Bearer ')[1];
-        console.log('🎫 Verifying ID token...');
-        const decodedToken = await getAuth().verifyIdToken(token);
-        userId = decodedToken.uid;
-        console.log('✅ Token verified, user ID:', userId);
         
         // Check if user has premium access for AI meal generation
         const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
