@@ -69,10 +69,10 @@ class SavedMealsService {
         cookingTime: saveRequest.meal.cookingTime || 30,
         mealType: saveRequest.meal.mealType || 'lunch',
         tags: saveRequest.tags || [],
-        notes: saveRequest.notes,
+        notes: saveRequest.notes || null,
         source: saveRequest.source || 'ai_generated',
-        originalGenerationData: saveRequest.originalData,
-        generationPreferences: saveRequest.generationPreferences,
+        originalGenerationData: saveRequest.originalData || null,
+        generationPreferences: saveRequest.generationPreferences || null,
         savedAt: new Date(),
         isPrivate: true // All meals are private by default
       };
