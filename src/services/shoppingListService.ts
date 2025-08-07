@@ -67,7 +67,7 @@ class ShoppingListService {
         updatedAt: serverTimestamp(),
         items: items.map(item => ({
           ...item,
-          addedAt: serverTimestamp()
+          addedAt: new Date()
         }))
       });
 
@@ -180,7 +180,7 @@ class ShoppingListService {
       await updateDoc(listRef, {
         items: arrayUnion({
           ...newItem,
-          addedAt: serverTimestamp()
+          addedAt: new Date()
         }),
         updatedAt: serverTimestamp()
       });
@@ -208,10 +208,7 @@ class ShoppingListService {
 
       const listRef = doc(db, 'shoppingLists', listId);
       await updateDoc(listRef, {
-        items: updatedItems.map(item => ({
-          ...item,
-          addedAt: serverTimestamp()
-        })),
+        items: updatedItems,
         updatedAt: serverTimestamp()
       });
 
@@ -236,10 +233,7 @@ class ShoppingListService {
 
       const listRef = doc(db, 'shoppingLists', listId);
       await updateDoc(listRef, {
-        items: updatedItems.map(item => ({
-          ...item,
-          addedAt: serverTimestamp()
-        })),
+        items: updatedItems,
         updatedAt: serverTimestamp()
       });
 
