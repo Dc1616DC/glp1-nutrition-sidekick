@@ -21,6 +21,7 @@ interface EnhancedMealPreferences extends MealPreferences {
   allergies?: string[]; // New: Pre-generation allergies filter
   creativityLevel?: 'simple' | 'flavorful-twists' | 'chef-inspired';
   assemblyToRecipeRatio?: number; // Default 60% assemblies, 40% recipes
+  availableIngredients?: string[]; // Pantry ingredients to prioritize
 }
 
 export class GrokService {
@@ -259,6 +260,10 @@ Return as JSON with this structure:
     
     const assemblyRatio = preferences.assemblyToRecipeRatio || 60;
     const symptomEnhancement = preferences.symptomEnhancement || '';
+    
+    const availableIngredientsText = preferences.availableIngredients?.length 
+      ? `PRIORITIZE THESE AVAILABLE INGREDIENTS: ${preferences.availableIngredients.join(', ')}. Focus on using as many of these as possible to reduce food waste and utilize what's already on hand.`
+      : '';
 
     return `
 As a popular chef specializing in GLP-1-friendly meals, create ${preferences.numOptions || 2} appealing ${preferences.mealType} options that make eating enough feel enjoyable and satisfying.
@@ -266,6 +271,8 @@ As a popular chef specializing in GLP-1-friendly meals, create ${preferences.num
 ${allergiesText}
 
 ${symptomEnhancement}
+
+${availableIngredientsText}
 
 CHEF'S MISSION: Transform simple, healthy ingredients into "doable decadence" - meals that feel indulgent yet support GLP-1 goals.
 
