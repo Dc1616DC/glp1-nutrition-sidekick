@@ -103,13 +103,13 @@ export default function AIMealGenerator() {
     if (pantryParam) {
       const ingredients = decodeURIComponent(pantryParam).split(',').filter(Boolean);
       setPantryIngredients(ingredients);
-      // Auto-generate meal if pantry ingredients are provided
-      if (ingredients.length > 0) {
+      // Auto-generate meal if pantry ingredients are provided, but only when user is authenticated
+      if (ingredients.length > 0 && user) {
         setActiveTab('generator');
-        setTimeout(generateMeal, 500); // Small delay to ensure state is updated
+        setTimeout(generateMeal, 1000); // Longer delay to ensure auth is ready
       }
     }
-  }, [searchParams]);
+  }, [searchParams, user]); // Add user dependency
 
   // Educational tips for GLP-1 users
   const educationalTips = [
@@ -268,9 +268,14 @@ export default function AIMealGenerator() {
         try {
           const token = await user.getIdToken();
           headers['Authorization'] = `Bearer ${token}`;
+          console.log('✅ Auth token obtained for meal generation');
         } catch (error) {
-          console.log('Could not get auth token for symptom optimization');
+          console.error('❌ Failed to get auth token:', error);
+          throw new Error('Authentication failed. Please try signing in again.');
         }
+      } else {
+        console.error('❌ No authenticated user found');
+        throw new Error('Please sign in to generate meals.');
       }
       
       const response = await fetch('/api/generate-meal-options-new', {
@@ -295,13 +300,22 @@ export default function AIMealGenerator() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate meals');
+        // Try to get error details from response
+        try {
+          const errorData = await response.json();
+          console.error('API Error:', errorData);
+          throw new Error(errorData.message || errorData.error || `Server error: ${response.status}`);
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
       }
 
       const data = await response.json();
       
       if (!data.success) {
-        throw new Error(data.error || 'Failed to generate meals');
+        console.error('API returned error:', data);
+        throw new Error(data.message || data.error || 'Failed to generate meals');
       }
       
       // Handle multiple meals response from new hybrid system
