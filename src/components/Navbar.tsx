@@ -26,7 +26,6 @@ export default function Navbar() {
     { href: '/meal-generator', label: 'AI Meal Generator' },
     { href: '/cookbook', label: '📚 My Cookbook' }, // Saved meals
     { href: '/shopping-list', label: '🛒 Shopping Lists' }, // Shopping lists
-    { href: '/pantry', label: '🥫 Pantry Tracker' }, // Pantry tracking
     { href: '/symptoms', label: 'Symptoms' }, // New symptom tracker
     { href: '/analytics', label: '📊 Analytics' }, // Pro analytics dashboard
     { href: '/education', label: 'Education' },

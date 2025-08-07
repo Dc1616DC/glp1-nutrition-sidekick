@@ -134,25 +134,6 @@ export default function PantryPage() {
     }
   };
 
-  const generateMealWithIngredients = async () => {
-    if (!user) return;
-    
-    try {
-      const availableIngredients = await pantryService.getAvailableIngredientsForMeals(user.uid);
-      
-      if (availableIngredients.length === 0) {
-        alert('No available ingredients found. Add some items to your pantry first!');
-        return;
-      }
-      
-      // Navigate to meal generator with pantry ingredients
-      const ingredientsParam = encodeURIComponent(availableIngredients.join(','));
-      router.push(`/meal-generator?pantryIngredients=${ingredientsParam}`);
-    } catch (error) {
-      console.error('Error generating meal:', error);
-      alert('Failed to generate meal with available ingredients');
-    }
-  };
 
   // Filter items based on search and filters
   const filteredItems = pantry?.items.filter(item => {
@@ -248,12 +229,6 @@ export default function PantryPage() {
         </div>
         
         <div className="flex space-x-3">
-          <button
-            onClick={generateMealWithIngredients}
-            className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors"
-          >
-            🍽️ Use What I Have
-          </button>
           <button
             onClick={() => setShowAddModal(true)}
             className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition-colors"

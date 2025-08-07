@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import AllergiesFilter from './AllergiesFilter';
 import { clientNutritionService } from '../services/clientNutritionService';
 import { savedMealsService } from '../services/savedMealsService';
@@ -71,8 +70,6 @@ interface GeneratedMeal {
 
 export default function AIMealGenerator() {
   const { user } = useAuth();
-  const searchParams = useSearchParams();
-  const [pantryIngredients, setPantryIngredients] = useState<string[]>([]);
   const [preferences, setPreferences] = useState<MealPreferences>({
     mealType: 'lunch',
     maxCookingTime: 30,
@@ -97,19 +94,6 @@ export default function AIMealGenerator() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedMealIds, setSavedMealIds] = useState<string[]>([]); // Track which meals are saved
 
-  // Read pantry ingredients from URL params on component mount
-  useEffect(() => {
-    const pantryParam = searchParams.get('pantryIngredients');
-    if (pantryParam) {
-      const ingredients = decodeURIComponent(pantryParam).split(',').filter(Boolean);
-      setPantryIngredients(ingredients);
-      // Auto-generate meal if pantry ingredients are provided, but only when user is authenticated
-      if (ingredients.length > 0 && user) {
-        setActiveTab('generator');
-        setTimeout(generateMeal, 1000); // Longer delay to ensure auth is ready
-      }
-    }
-  }, [searchParams, user]); // Add user dependency
 
   // Educational tips for GLP-1 users
   const educationalTips = [
@@ -171,7 +155,7 @@ export default function AIMealGenerator() {
       const saveRequest = {
         meal: {
           title: meal.name || meal.title || 'Untitled Meal',
-          description: meal.description,
+          description: meal.description || null,
           ingredients: Array.isArray(meal.ingredients) 
             ? meal.ingredients.map(ing => typeof ing === 'string' ? ing : `${ing.amount} ${ing.unit} ${ing.name}`)
             : [],
@@ -295,7 +279,6 @@ export default function AIMealGenerator() {
           },
           creativityLevel: preferences.creativityLevel,
           assemblyToRecipeRatio: preferences.assemblyToRecipeRatio,
-          availableIngredients: pantryIngredients.length > 0 ? pantryIngredients : undefined
         }),
       });
 
@@ -483,36 +466,6 @@ export default function AIMealGenerator() {
           className="mb-6"
         />
 
-        {/* Pantry Ingredients Display */}
-        {pantryIngredients.length > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-            <div className="flex items-center mb-4">
-              <span className="text-2xl mr-3">🥫</span>
-              <h3 className="text-lg font-semibold text-green-800">Using Ingredients from Your Pantry</h3>
-            </div>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {pantryIngredients.map((ingredient, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full border border-green-200"
-                >
-                  {ingredient}
-                </span>
-              ))}
-            </div>
-            <div className="flex justify-between items-center">
-              <p className="text-green-700 text-sm">
-                AI will prioritize meals using these ingredients to help reduce food waste!
-              </p>
-              <button
-                onClick={() => setPantryIngredients([])}
-                className="text-green-600 hover:text-green-800 text-sm font-medium"
-              >
-                Clear Pantry Ingredients
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Simplified Preferences - Focus on What Matters */}
         <div className="grid md:grid-cols-2 gap-6">
