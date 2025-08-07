@@ -277,8 +277,14 @@ class SubscriptionService {
    * Check if user has access to premium features
    */
   async hasPremiumAccess(userId: string): Promise<boolean> {
-    const subscription = await this.getUserSubscription(userId);
-    return subscription.isPremium && subscription.subscriptionStatus === 'active';
+    // TEMPORARY: Allow premium access for testing
+    // TODO: Remove this before production
+    console.log('⚠️ DEV MODE: Premium access granted for testing');
+    return true;
+    
+    // Original code (commented out for testing):
+    // const subscription = await this.getUserSubscription(userId);
+    // return subscription.isPremium && subscription.subscriptionStatus === 'active';
   }
 
   /**

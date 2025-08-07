@@ -64,7 +64,7 @@ class PantryService {
           ...item,
           addedAt: item.addedAt?.toDate() || new Date(),
           lastUpdatedAt: item.lastUpdatedAt?.toDate() || new Date(),
-          expirationDate: item.expirationDate?.toDate()
+          expirationDate: item.expirationDate ? item.expirationDate.toDate() : undefined
         })) || []
       } as Pantry;
     } catch (error) {
@@ -97,10 +97,15 @@ class PantryService {
       const pantryRef = doc(db, 'pantries', userId);
       await updateDoc(pantryRef, {
         items: updatedItems.map(item => ({
-          ...item,
-          addedAt: serverTimestamp(),
-          lastUpdatedAt: serverTimestamp(),
-          expirationDate: item.expirationDate || null
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          expirationDate: item.expirationDate || null,
+          isLow: item.isLow,
+          notes: item.notes || null,
+          addedAt: item.addedAt,
+          lastUpdatedAt: item.lastUpdatedAt
         })),
         lastUpdatedAt: serverTimestamp()
       });
@@ -128,10 +133,15 @@ class PantryService {
       const pantryRef = doc(db, 'pantries', userId);
       await updateDoc(pantryRef, {
         items: updatedItems.map(item => ({
-          ...item,
-          addedAt: serverTimestamp(),
-          lastUpdatedAt: serverTimestamp(),
-          expirationDate: item.expirationDate || null
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          expirationDate: item.expirationDate || null,
+          isLow: item.isLow,
+          notes: item.notes || null,
+          addedAt: item.addedAt,
+          lastUpdatedAt: item.lastUpdatedAt
         })),
         lastUpdatedAt: serverTimestamp()
       });
@@ -155,10 +165,15 @@ class PantryService {
       const pantryRef = doc(db, 'pantries', userId);
       await updateDoc(pantryRef, {
         items: updatedItems.map(item => ({
-          ...item,
-          addedAt: serverTimestamp(),
-          lastUpdatedAt: serverTimestamp(),
-          expirationDate: item.expirationDate || null
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          expirationDate: item.expirationDate || null,
+          isLow: item.isLow,
+          notes: item.notes || null,
+          addedAt: item.addedAt,
+          lastUpdatedAt: item.lastUpdatedAt
         })),
         lastUpdatedAt: serverTimestamp()
       });
@@ -299,10 +314,15 @@ class PantryService {
       const pantryRef = doc(db, 'pantries', userId);
       await updateDoc(pantryRef, {
         items: updatedItems.map(item => ({
-          ...item,
-          addedAt: serverTimestamp(),
-          lastUpdatedAt: serverTimestamp(),
-          expirationDate: item.expirationDate || null
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          expirationDate: item.expirationDate || null,
+          isLow: item.isLow,
+          notes: item.notes || null,
+          addedAt: item.addedAt,
+          lastUpdatedAt: item.lastUpdatedAt
         })),
         lastUpdatedAt: serverTimestamp()
       });
