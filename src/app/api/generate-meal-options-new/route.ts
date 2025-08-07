@@ -26,18 +26,24 @@ export async function POST(request: NextRequest) {
     
     try {
       const authHeader = request.headers.get('authorization');
+      console.log('🔍 Auth header present:', !!authHeader);
+      
       if (authHeader && authHeader.startsWith('Bearer ')) {
         // Initialize Firebase Admin if not already initialized
         if (getApps().length === 0) {
+          console.log('🔥 Initializing Firebase Admin SDK...');
           const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
           initializeApp({
             credential: cert(serviceAccount)
           });
+          console.log('✅ Firebase Admin SDK initialized');
         }
         
         const token = authHeader.split('Bearer ')[1];
+        console.log('🎫 Verifying ID token...');
         const decodedToken = await getAuth().verifyIdToken(token);
         userId = decodedToken.uid;
+        console.log('✅ Token verified, user ID:', userId);
         
         // Check if user has premium access for AI meal generation
         const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
@@ -59,7 +65,9 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (authError) {
-      console.log('ℹ️ No valid auth token:', authError);
+      console.error('❌ Authentication failed:', authError);
+      console.log('Auth error type:', authError?.constructor?.name);
+      console.log('Auth error message:', authError?.message);
       // AI meal generation requires premium subscription, which requires authentication
       return NextResponse.json({
         error: 'Authentication required',
