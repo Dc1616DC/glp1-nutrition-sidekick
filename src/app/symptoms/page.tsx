@@ -8,6 +8,7 @@ import { subscriptionService } from '../../services/subscriptionService';
 import SymptomTracker from '../../components/SymptomTracker';
 import SymptomTrends from '../../components/SymptomTrends';
 import SymptomMealSuggestions from '../../components/SymptomMealSuggestions';
+import SymptomAIInsights from '../../components/SymptomAIInsights';
 import { useRouter } from 'next/navigation';
 
 interface SymptomLog {
@@ -342,6 +343,9 @@ export default function SymptomsPage() {
         /* Trends Dashboard */
         <SymptomTrends />
       )}
+
+      {/* AI-Powered Symptom Insights */}
+      <SymptomAIInsights />
 
       {/* Symptom-Based Meal Suggestions */}
       <SymptomMealSuggestions />

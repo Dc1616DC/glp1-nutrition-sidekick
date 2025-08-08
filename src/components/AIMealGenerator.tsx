@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AllergiesFilter from './AllergiesFilter';
 import { clientNutritionService } from '../services/clientNutritionService';
 import { savedMealsService } from '../services/savedMealsService';
+import { shoppingListService } from '../services/shoppingListService';
 import InsightNudge from './InsightNudge';
 import NutritionInsights from './NutritionInsights';
 import { useAuth } from '../context/AuthContext';
@@ -70,6 +72,7 @@ interface GeneratedMeal {
 
 export default function AIMealGenerator() {
   const { user } = useAuth();
+  const router = useRouter();
   const [preferences, setPreferences] = useState<MealPreferences>({
     mealType: 'lunch',
     maxCookingTime: 30,
@@ -188,6 +191,49 @@ export default function AIMealGenerator() {
       alert('Failed to save meal. Please try again.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const createShoppingList = async (meal: GeneratedMeal) => {
+    if (!user) {
+      alert('Please sign in to create shopping lists');
+      return;
+    }
+
+    try {
+      // Extract ingredients from the meal
+      const ingredients = Array.isArray(meal.ingredients) 
+        ? meal.ingredients.map(ing => {
+            if (typeof ing === 'string') {
+              return ing;
+            } else if (ing && typeof ing === 'object') {
+              return `${ing.amount || ''} ${ing.unit || ''} ${ing.name || ''}`.trim();
+            }
+            return '';
+          }).filter(Boolean)
+        : [];
+
+      if (ingredients.length === 0) {
+        alert('No ingredients found in this meal');
+        return;
+      }
+
+      // Create the shopping list
+      const shoppingList = await shoppingListService.createListFromMeal(
+        user.uid,
+        meal.id || 'generated-meal',
+        meal.name || meal.title || 'AI Generated Meal',
+        ingredients
+      );
+
+      console.log('✅ Shopping list created:', shoppingList.name);
+      
+      // Redirect to the shopping list page
+      router.push('/shopping-list');
+      
+    } catch (error) {
+      console.error('Error creating shopping list:', error);
+      alert('Failed to create shopping list. Please try again.');
     }
   };
 
@@ -851,7 +897,10 @@ export default function AIMealGenerator() {
               {isSaving ? '💾 Saving...' : '💾 Save to Cookbook'}
             </button>
             
-            <button className="bg-blue-200 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-300 font-medium">
+            <button 
+              onClick={() => createShoppingList(selectedMeal)}
+              className="bg-blue-200 text-blue-800 px-4 py-2 rounded-lg hover:bg-blue-300 font-medium"
+            >
               🛒 Shopping List
             </button>
           </div>

@@ -218,23 +218,6 @@ export default function RemindersPage() {
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Meal Reminders</h1>
 
-      {/* Optional alternate implementation link */}
-      <div className="mb-6 text-sm text-blue-700 bg-blue-50 p-3 rounded">
-        Prefer trying a simpler notification demo that doesn't rely on Firebase&nbsp;Cloud&nbsp;Messaging?&nbsp;
-        <Link href="/test-reminders" className="underline hover:text-blue-900">
-          Open the Test&nbsp;Reminders page
-        </Link>
-        .
-      </div>
-
-      {/* Debug timing link */}
-      <div className="mb-6 text-sm text-gray-700 bg-gray-50 p-3 rounded">
-        🧪 Having issues with reminders not triggering?&nbsp;
-        <Link href="/test-timing" className="underline hover:text-gray-900">
-          Open the Timing Debug page
-        </Link>
-        &nbsp;to test notification scheduling.
-      </div>
       
       {/* Explanation Section */}
       <div className="bg-blue-50 p-4 rounded-lg mb-8">
@@ -246,6 +229,26 @@ export default function RemindersPage() {
         <p className="text-blue-700">
           First, you'll need to grant notification permission to your browser, then set your preferred meal times below.
         </p>
+      </div>
+
+      {/* Integration Info */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
+        <h3 className="text-lg font-semibold text-green-800 mb-2">🎯 Meal Logging Integration</h3>
+        <p className="text-green-700 mb-2">
+          Your reminders are automatically synced with your meal logging goals. When you set which meals to track in the 
+          <strong> Meal Logger</strong>, those same meals will be enabled for reminders here.
+        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-green-700 text-sm">
+            Want to change which meals you track and get reminders for?
+          </p>
+          <a 
+            href="/meal-log" 
+            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700"
+          >
+            📝 Go to Meal Logger
+          </a>
+        </div>
       </div>
 
       {/* Notification Permission Section */}
@@ -362,16 +365,6 @@ export default function RemindersPage() {
         </form>
       )}
 
-      {/* Footer Links */}
-      <div className="mt-12 text-center text-sm text-gray-500">
-        <p className="mb-2">Need more advanced controls?</p>
-        <Link 
-          href="/medical-reminders" 
-          className="text-blue-500 hover:text-blue-600 underline"
-        >
-          Visit the Medical Reminders Page
-        </Link>
-      </div>
     </div>
   );
 }

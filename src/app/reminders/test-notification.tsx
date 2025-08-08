@@ -100,23 +100,6 @@ export default function TestNotification() {
         </p>
       )}
 
-      {/* Alternative: Use meal reminder system for testing */}
-      <hr className="my-6" />
-      <div className="bg-blue-50 p-4 rounded-lg">
-        <h4 className="text-md font-semibold text-blue-800 mb-2">
-          💡 Want to test meal reminders?
-        </h4>
-        <p className="text-sm text-blue-700 mb-3">
-          For testing actual meal notifications, use the "🚀 Quick Test (2 min)" button 
-          in the Advanced Settings page.
-        </p>
-        <a 
-          href="/medical-reminders" 
-          className="inline-block bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700"
-        >
-          Go to Advanced Settings
-        </a>
-      </div>
     </div>
   );
 }

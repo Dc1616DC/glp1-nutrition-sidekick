@@ -117,6 +117,26 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
     
+    // Meal logs - users can only access their own meal logging data
+    match /mealLogs/{logId} {
+      allow read: if isSignedIn() && 
+                     (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && 
+                     request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && 
+                     resource.data.userId == request.auth.uid &&
+                     request.resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    // Meal commitments - users can only access their own commitments (userId is document ID)
+    match /mealCommitments/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isOwner(userId);
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;
