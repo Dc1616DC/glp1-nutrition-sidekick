@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const requestBody = await request.json();
-    console.log('🍽️ New meal generation request:', requestBody);
+    // console.log('🍽️ New meal generation request:', requestBody);
     
     // Get user ID from authorization header for symptom integration
     let userId = null;
@@ -26,32 +26,23 @@ export async function POST(request: NextRequest) {
     
     try {
       const authHeader = request.headers.get('authorization');
-      console.log('🔍 Auth header present:', !!authHeader);
+      // console.log('🔍 Auth header present:', !!authHeader);
       
       if (authHeader && authHeader.startsWith('Bearer ')) {
-        // TEMPORARY DEV MODE: Skip Firebase Admin token verification
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚠️ DEV MODE: Skipping Firebase Admin token verification');
-          // Extract a fake user ID from the token (or use a test user ID)
-          userId = 'dev-user-test-id';
-          console.log('✅ Using dev user ID:', userId);
-        } else {
-          // Initialize Firebase Admin if not already initialized
-          if (getApps().length === 0) {
-            console.log('🔥 Initializing Firebase Admin SDK...');
-            const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
-            initializeApp({
-              credential: cert(serviceAccount)
-            });
-            console.log('✅ Firebase Admin SDK initialized');
-          }
-          
-          const token = authHeader.split('Bearer ')[1];
-          console.log('🎫 Verifying ID token...');
-          const decodedToken = await getAuth().verifyIdToken(token);
-          userId = decodedToken.uid;
-          console.log('✅ Token verified, user ID:', userId);
+        // Initialize Firebase Admin if not already initialized
+        if (getApps().length === 0) {
+          const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
+          initializeApp({
+            credential: cert(serviceAccount)
+          });
+          // console.log('✅ Firebase Admin SDK initialized');
         }
+        
+        const token = authHeader.split('Bearer ')[1];
+        // console.log('🎫 Verifying ID token...');
+        const decodedToken = await getAuth().verifyIdToken(token);
+        userId = decodedToken.uid;
+        // console.log('✅ Token verified, user ID:', userId);
         
         // Check if user has premium access for AI meal generation
         const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
@@ -65,17 +56,17 @@ export async function POST(request: NextRequest) {
         }
         
         // Get symptom-based meal preferences
-        console.log('🔍 Analyzing symptoms for user:', userId);
+        // console.log('🔍 Analyzing symptoms for user:', userId);
         symptomEnhancement = await symptomMealService.createSymptomPromptEnhancement(userId);
         
         if (symptomEnhancement) {
-          console.log('✅ Added symptom-based optimizations to meal generation');
+          // console.log('✅ Added symptom-based optimizations to meal generation');
         }
       }
     } catch (authError) {
       console.error('❌ Authentication failed:', authError);
-      console.log('Auth error type:', authError?.constructor?.name);
-      console.log('Auth error message:', authError?.message);
+      // console.log('Auth error type:', authError?.constructor?.name);
+      // console.log('Auth error message:', authError?.message);
       // AI meal generation requires premium subscription, which requires authentication
       return NextResponse.json({
         error: 'Authentication required',
@@ -103,7 +94,7 @@ export async function POST(request: NextRequest) {
 
     // Check if we should use fallback (for testing or API failures)
     if (requestBody.useFallback) {
-      console.log('📋 Using curated recipes as requested');
+      // console.log('📋 Using curated recipes as requested');
       return await generateCuratedMeals(preferences);
     }
 
@@ -115,7 +106,7 @@ export async function POST(request: NextRequest) {
     });
     
     if (cachedResult) {
-      console.log('🎯 Cache hit - returning cached meal generation');
+      // console.log('🎯 Cache hit - returning cached meal generation');
       return NextResponse.json({
         ...cachedResult,
         cached: true,
@@ -127,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Step 1: Generate recipes with Grok AI
-      console.log('🤖 Step 1: Generating recipes with Grok...');
+      // console.log('🤖 Step 1: Generating recipes with Grok...');
       generatedRecipes = await grokService.generateGLP1Recipes(preferences);
       
       if (generatedRecipes.length === 0) {
@@ -135,19 +126,19 @@ export async function POST(request: NextRequest) {
       }
 
       // Step 2: Calculate nutrition using USDA database first, Grok as fallback
-      console.log('📊 Step 2: Calculating nutrition with USDA + Grok hybrid approach...');
+      // console.log('📊 Step 2: Calculating nutrition with USDA + Grok hybrid approach...');
       for (let i = 0; i < generatedRecipes.length; i++) {
         const recipe = generatedRecipes[i];
         
         // Use Grok's nutrition estimates as-is (they're more consistent than our buggy hybrid attempts)
-        console.log(`🤖 Using Grok's nutrition estimates for "${recipe.title}": ${recipe.nutritionTotals?.protein || 0}g protein, ${recipe.nutritionTotals?.calories || 0} calories`);
+        // console.log(`🤖 Using Grok's nutrition estimates for "${recipe.title}": ${recipe.nutritionTotals?.protein || 0}g protein, ${recipe.nutritionTotals?.calories || 0} calories`);
         
         // Keep Grok's original estimates - they're already in recipe.nutritionTotals
         // No additional processing needed
       }
 
       // Step 3: Validate against GLP-1 requirements
-      console.log('✅ Step 3: Validating GLP-1 compliance...');
+      // console.log('✅ Step 3: Validating GLP-1 compliance...');
       const validatedRecipes: Recipe[] = [];
       
       for (let i = 0; i < generatedRecipes.length; i++) {
@@ -160,11 +151,11 @@ export async function POST(request: NextRequest) {
             ...recipe,
             glp1Notes: `${recipe.glp1Notes} | ${nutritionValidationService.generateNutritionDisclaimer(validation)}`
           });
-          console.log(`✅ Recipe "${recipe.title}" passed validation (score: ${validation.score})`);
+          // console.log(`✅ Recipe "${recipe.title}" passed validation (score: ${validation.score})`);
         } else {
           // Try to fix the recipe
-          console.log(`🔧 Recipe "${recipe.title}" needs adjustment (score: ${validation.score})`);
-          console.log('Issues:', validation.issues);
+          // console.log(`🔧 Recipe "${recipe.title}" needs adjustment (score: ${validation.score})`);
+          // console.log('Issues:', validation.issues);
           
           try {
             const adjustedRecipe = await grokService.adjustRecipe(recipe, validation.issues);
@@ -173,9 +164,9 @@ export async function POST(request: NextRequest) {
             const newValidation = nutritionValidationService.validateGLP1Recipe(adjustedRecipe);
             if (newValidation.valid || newValidation.score >= 60) {
               validatedRecipes.push(adjustedRecipe);
-              console.log(`✅ Adjusted recipe "${adjustedRecipe.title}" now passes (score: ${newValidation.score})`);
+              // console.log(`✅ Adjusted recipe "${adjustedRecipe.title}" now passes (score: ${newValidation.score})`);
             } else {
-              console.log(`❌ Could not fix recipe "${recipe.title}", skipping`);
+              // console.log(`❌ Could not fix recipe "${recipe.title}", skipping`);
             }
           } catch (adjustmentError) {
             console.error('Failed to adjust recipe:', adjustmentError);
@@ -193,7 +184,7 @@ export async function POST(request: NextRequest) {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`✅ Successfully generated ${validatedRecipes.length} GLP-1 recipes in ${duration}ms`);
+      // console.log(`✅ Successfully generated ${validatedRecipes.length} GLP-1 recipes in ${duration}ms`);
       
       const result = { 
         success: true,
@@ -209,13 +200,13 @@ export async function POST(request: NextRequest) {
         { preferences, mealType: preferences.mealType, userId },
         result
       );
-      console.log('💾 Cached meal generation results');
+      // console.log('💾 Cached meal generation results');
       
       return NextResponse.json(result);
 
     } catch (generationError) {
       console.error('❌ Recipe generation failed:', generationError);
-      console.log('🔄 Falling back to curated recipes...');
+      // console.log('🔄 Falling back to curated recipes...');
       return await generateCuratedMeals(preferences);
     }
 
@@ -240,7 +231,7 @@ export async function POST(request: NextRequest) {
  */
 async function generateCuratedMeals(preferences: MealPreferences) {
   try {
-    console.log('📋 Generating curated meal options...');
+    // console.log('📋 Generating curated meal options...');
     
     const curatedMeals = curatedRecipeService.getRecipes({
       mealType: preferences.mealType,

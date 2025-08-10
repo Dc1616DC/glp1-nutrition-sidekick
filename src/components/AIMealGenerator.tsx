@@ -142,7 +142,7 @@ export default function AIMealGenerator() {
 
   const clearHistory = () => {
     setPreviousMeals([]);
-    console.log('Meal history cleared for better variety');
+    // console.log('Meal history cleared for better variety');
   };
 
   // Save meal to user's cookbook
@@ -184,7 +184,7 @@ export default function AIMealGenerator() {
       
       // Show success message
       alert(`✅ "${savedMeal.title}" saved to your cookbook!`);
-      console.log('✅ Meal saved successfully:', savedMeal.title);
+      // console.log('✅ Meal saved successfully:', savedMeal.title);
       
     } catch (error) {
       console.error('Error saving meal:', error);
@@ -226,7 +226,7 @@ export default function AIMealGenerator() {
         ingredients
       );
 
-      console.log('✅ Shopping list created:', shoppingList.name);
+      // console.log('✅ Shopping list created:', shoppingList.name);
       
       // Redirect to the shopping list page
       router.push('/shopping-list');
@@ -275,7 +275,7 @@ export default function AIMealGenerator() {
       };
       
       setGeneratedMeals(updatedMeals);
-      console.log('✨ Recipe enhanced with flavorful twists!');
+      // console.log('✨ Recipe enhanced with flavorful twists!');
       
     } catch (error) {
       console.error('Error enhancing meal:', error);
@@ -298,7 +298,7 @@ export default function AIMealGenerator() {
         try {
           const token = await user.getIdToken();
           headers['Authorization'] = `Bearer ${token}`;
-          console.log('✅ Auth token obtained for meal generation');
+          // console.log('✅ Auth token obtained for meal generation');
         } catch (error) {
           console.error('❌ Failed to get auth token:', error);
           throw new Error('Authentication failed. Please try signing in again.');
@@ -364,9 +364,9 @@ export default function AIMealGenerator() {
       
       // Show user feedback and disclaimer about nutrition estimates
       if (data.source === 'grok-estimates') {
-        console.log('✅ Generated with Grok AI - nutrition values are estimates and may vary from actual values');
+        // console.log('✅ Generated with Grok AI - nutrition values are estimates and may vary from actual values');
       } else if (data.fallback) {
-        console.log('ℹ️ Using curated recipes as fallback - still GLP-1 optimized!');
+        // console.log('ℹ️ Using curated recipes as fallback - still GLP-1 optimized!');
       }
       
       // Check nutrition thresholds and show contextual nudges

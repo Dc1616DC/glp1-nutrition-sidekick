@@ -11,6 +11,8 @@ import PWAInstallPrompt from "../components/PWAInstallPrompt";
 import PWAStatus from "../components/PWAStatus";
 // Service worker registration
 import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
+// Error boundary for graceful error handling
+import ErrorBoundary from "../components/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,7 +75,9 @@ export default function RootLayout({
           <PWAStatus />
           <Navbar />
           <main className="mx-auto max-w-7xl p-4">
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </main>
           <PWAInstallPrompt />
         </AuthProvider>
