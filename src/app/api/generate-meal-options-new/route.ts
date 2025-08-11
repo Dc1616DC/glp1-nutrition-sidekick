@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     
     try {
       // Generate meals using Spoonacular service
-      const meals = await spoonacularService.getGLP1OptimizedMeals({
+      const meals = await spoonacularService.generateMultipleMealOptions({
         mealType: preferences.mealType || 'lunch',
         dietaryRestrictions: preferences.dietaryRestrictions,
         cuisineType: preferences.cuisineType,
@@ -111,15 +111,15 @@ export async function POST(request: NextRequest) {
         avoidIngredients: preferences.avoidIngredients || [],
         previousMeals: preferences.previousMeals || [],
         freeTextPrompt: preferences.freeTextPrompt,
-        minProtein: preferences.minProtein || preferences.proteinTarget || 20,
-        minFiber: preferences.minFiber || preferences.fiberTarget || 4,
-        maxCalories: preferences.maxCalories || 600,
+        minProtein: preferences.proteinTarget || 20,
+        minFiber: preferences.fiberTarget || 4,
+        maxCalories: preferences.maxCalories || (preferences.calorieRange?.max) || 600,
         maxReadyTime: preferences.maxCookingTime,
         cookingMethod: preferences.cookingMethod,
         equipmentAvailable: preferences.equipmentAvailable,
         mealPrepOnly: preferences.mealPrepOnly,
         surpriseMe: preferences.surpriseMe,
-        symptomEnhancement: preferences.symptomEnhancement
+        numOptions: preferences.numOptions || 2
       });
       
       const duration = Date.now() - startTime;
