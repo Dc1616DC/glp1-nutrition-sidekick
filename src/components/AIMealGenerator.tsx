@@ -295,14 +295,10 @@ export default function AIMealGenerator() {
       };
       
       if (user) {
-        try {
-          const token = await user.getIdToken();
-          headers['Authorization'] = `Bearer ${token}`;
-          // console.log('✅ Auth token obtained for meal generation');
-        } catch (error) {
-          console.error('❌ Failed to get auth token:', error);
-          throw new Error('Authentication failed. Please try signing in again.');
-        }
+        // Send user UID as token for simplified auth
+        // In production, you'd send the actual ID token and verify it server-side
+        headers['Authorization'] = `Bearer ${user.uid}`;
+        // console.log('✅ Auth header set for meal generation');
       } else {
         console.error('❌ No authenticated user found');
         throw new Error('Please sign in to generate meals.');
