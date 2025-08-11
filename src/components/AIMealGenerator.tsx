@@ -295,10 +295,16 @@ export default function AIMealGenerator() {
       };
       
       if (user) {
-        // Send user UID as token for simplified auth
-        // In production, you'd send the actual ID token and verify it server-side
-        headers['Authorization'] = `Bearer ${user.uid}`;
-        // console.log('✅ Auth header set for meal generation');
+        try {
+          // Get Firebase ID token for proper authentication
+          const token = await user.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+          // console.log('✅ Auth token obtained for meal generation');
+        } catch (tokenError) {
+          // Fallback to UID for development if getIdToken fails
+          console.warn('Failed to get ID token, using UID as fallback:', tokenError);
+          headers['Authorization'] = `Bearer ${user.uid}`;
+        }
       } else {
         console.error('❌ No authenticated user found');
         throw new Error('Please sign in to generate meals.');

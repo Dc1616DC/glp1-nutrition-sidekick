@@ -3,8 +3,12 @@ import { generateMealOptions } from '../../../services/mealGenerationService';
 import { generateCuratedMeals } from '../../../services/curatedMealService';
 import { symptomMealService } from '../../../services/symptomMealService';
 import { subscriptionService } from '../../../services/subscriptionService';
+import { verifyIdToken, isAdminInitialized } from '../../../lib/firebase-admin';
 
-// Simple auth check - in production, you'd verify the token properly
+/**
+ * Verify user authentication
+ * Supports both Firebase Admin SDK (production) and fallback for development
+ */
 async function verifyUser(request: NextRequest): Promise<string | null> {
   const authHeader = request.headers.get('authorization');
   
@@ -14,13 +18,24 @@ async function verifyUser(request: NextRequest): Promise<string | null> {
   
   const token = authHeader.split('Bearer ')[1];
   
-  // For development: extract user ID from token
-  // The frontend sends the user's UID as the token when Firebase Admin isn't configured
-  // This is temporary - in production you should properly verify Firebase tokens
-  if (token && token.length > 0) {
-    // Basic validation - check if it looks like a Firebase UID
+  // Try Firebase Admin SDK verification first (production)
+  if (isAdminInitialized()) {
+    try {
+      const decodedToken = await verifyIdToken(token);
+      return decodedToken.uid;
+    } catch (error) {
+      console.error('Firebase token verification failed:', error);
+      return null;
+    }
+  }
+  
+  // Fallback for development when Firebase Admin isn't configured
+  // This should only be used in development environments
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️ Using development authentication fallback - not for production!');
+    // Check if token looks like a Firebase UID (development only)
     if (token.match(/^[a-zA-Z0-9]{20,}$/)) {
-      return token; // Use the token as the user ID directly
+      return token;
     }
   }
   
