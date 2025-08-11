@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateMealOptions } from '../../../services/mealGenerationService';
-import { generateCuratedMeals } from '../../../services/curatedMealService';
+import { spoonacularService } from '../../../services/spoonacularService';
 import { symptomMealService } from '../../../services/symptomMealService';
 import { subscriptionService } from '../../../services/subscriptionService';
 import { verifyIdToken, isAdminInitialized } from '../../../lib/firebase-admin';
+import { cacheService } from '../../../services/cacheService';
 
 /**
  * Verify user authentication
@@ -79,14 +79,22 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json();
-    const { preferences } = body;
     
-    if (!preferences) {
-      return NextResponse.json(
-        { error: 'Missing preferences in request body' },
-        { status: 400 }
-      );
-    }
+    // The body itself contains the preferences directly
+    const preferences = {
+      mealType: body.mealType,
+      dietaryRestrictions: body.dietaryRestrictions,
+      allergies: body.allergies,
+      numOptions: body.numOptions || 2,
+      maxCookingTime: body.maxCookingTime,
+      proteinTarget: body.proteinTarget,
+      fiberTarget: body.fiberTarget,
+      calorieRange: body.calorieRange,
+      creativityLevel: body.creativityLevel,
+      assemblyToRecipeRatio: body.assemblyToRecipeRatio,
+      avoidIngredients: body.allergies || [],
+      previousMeals: []
+    };
     
     // Add symptom enhancement to preferences if available
     if (symptomEnhancement) {
@@ -94,35 +102,50 @@ export async function POST(request: NextRequest) {
     }
     
     try {
-      // Try AI generation first
-      const result = await generateMealOptions(preferences);
+      // Generate meals using Spoonacular service
+      const meals = await spoonacularService.getGLP1OptimizedMeals({
+        mealType: preferences.mealType || 'lunch',
+        dietaryRestrictions: preferences.dietaryRestrictions,
+        cuisineType: preferences.cuisineType,
+        proteinSource: preferences.proteinSource,
+        avoidIngredients: preferences.avoidIngredients || [],
+        previousMeals: preferences.previousMeals || [],
+        freeTextPrompt: preferences.freeTextPrompt,
+        minProtein: preferences.minProtein || preferences.proteinTarget || 20,
+        minFiber: preferences.minFiber || preferences.fiberTarget || 4,
+        maxCalories: preferences.maxCalories || 600,
+        maxReadyTime: preferences.maxCookingTime,
+        cookingMethod: preferences.cookingMethod,
+        equipmentAvailable: preferences.equipmentAvailable,
+        mealPrepOnly: preferences.mealPrepOnly,
+        surpriseMe: preferences.surpriseMe,
+        symptomEnhancement: preferences.symptomEnhancement
+      });
       
       const duration = Date.now() - startTime;
       
       return NextResponse.json({
         success: true,
-        meals: result.meals,
-        generationMethod: result.generationMethod,
-        cacheStatus: result.cacheStatus,
+        meals: meals,
+        generationMethod: 'spoonacular',
+        cacheStatus: 'fresh',
         duration,
         timestamp: new Date().toISOString()
       });
       
     } catch (generationError) {
       console.error('Recipe generation failed:', generationError);
-      // Fall back to curated recipes
-      const curatedResult = await generateCuratedMeals(preferences);
       
+      // Try to return a helpful error message
       const duration = Date.now() - startTime;
       
       return NextResponse.json({
-        success: true,
-        meals: curatedResult.meals,
-        generationMethod: 'curated_fallback',
-        cacheStatus: 'miss',
+        success: false,
+        error: 'Failed to generate meals',
+        details: generationError instanceof Error ? generationError.message : 'Unknown error',
         duration,
         timestamp: new Date().toISOString()
-      });
+      }, { status: 500 });
     }
     
   } catch (error) {
