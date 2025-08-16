@@ -1,4 +1,4 @@
-import { collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, DocumentData } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 interface SymptomLog {
@@ -6,7 +6,7 @@ interface SymptomLog {
   severity: number;
   notes: string;
   mealRelated: boolean | null;
-  timestamp: any;
+  timestamp: DocumentData;
 }
 
 interface SymptomInsight {

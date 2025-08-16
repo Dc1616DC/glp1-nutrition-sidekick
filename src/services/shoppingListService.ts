@@ -1,4 +1,4 @@
-import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, updateDoc, where, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, updateDoc, where, arrayUnion, DocumentData } from 'firebase/firestore';
 import { app } from '../firebase/config';
 
 const db = getFirestore(app);
@@ -101,7 +101,7 @@ class ShoppingListService {
           ...data,
           createdAt: data.createdAt?.toDate() || new Date(),
           updatedAt: data.updatedAt?.toDate() || new Date(),
-          items: data.items?.map((item: any) => ({
+          items: data.items?.map((item: DocumentData) => ({
             ...item,
             addedAt: item.addedAt?.toDate() || new Date()
           })) || []
@@ -138,7 +138,7 @@ class ShoppingListService {
         ...data,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
-        items: data.items?.map((item: any) => ({
+        items: data.items?.map((item: DocumentData) => ({
           ...item,
           addedAt: item.addedAt?.toDate() || new Date()
         })) || []

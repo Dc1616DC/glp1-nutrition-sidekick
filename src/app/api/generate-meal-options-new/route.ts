@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spoonacularService } from '../../../services/spoonacularService';
+import { GrokService } from '../../../services/grokService';
 import { symptomMealService } from '../../../services/symptomMealService';
 import { subscriptionService } from '../../../services/subscriptionService';
 import { verifyIdToken, isAdminInitialized } from '../../../lib/firebase-admin';
-import { cacheService } from '../../../services/cacheService';
+import { withRateLimit, rateLimiters } from '../../../lib/rateLimiter';
+import { createErrorResponse, createAuthError, sanitizeError } from '../../../lib/error-sanitizer';
+import '../../../lib/env-validation'; // Validate environment on import
+
+const grokService = new GrokService();
 
 /**
  * Verify user authentication
@@ -30,11 +34,12 @@ async function verifyUser(request: NextRequest): Promise<string | null> {
   }
   
   // Fallback for development when Firebase Admin isn't configured
-  // This should only be used in development environments
-  if (process.env.NODE_ENV === 'development') {
+  // This should only be used in development environments with explicit opt-in
+  if (process.env.NODE_ENV === 'development' && process.env.ALLOW_DEV_AUTH === 'true') {
     console.warn('⚠️ Using development authentication fallback - not for production!');
-    // Check if token looks like a Firebase UID (development only)
-    if (token.match(/^[a-zA-Z0-9]{20,}$/)) {
+    // More strict validation for development - must be a known test user ID
+    const allowedDevUserIds = process.env.DEV_USER_IDS?.split(',') || [];
+    if (allowedDevUserIds.includes(token)) {
       return token;
     }
   }
@@ -42,7 +47,7 @@ async function verifyUser(request: NextRequest): Promise<string | null> {
   return null;
 }
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const startTime = Date.now();
   
   try {
@@ -50,12 +55,7 @@ export async function POST(request: NextRequest) {
     const userId = await verifyUser(request);
     
     if (!userId) {
-      return NextResponse.json({
-        error: 'Authentication required',
-        message: 'Please sign in to access AI meal generation.',
-        upgradeUrl: '/analytics',
-        feature: 'ai_meal_generation'
-      }, { status: 401 });
+      return createAuthError();
     }
     
     // Check if user has premium access for AI meal generation
@@ -102,24 +102,18 @@ export async function POST(request: NextRequest) {
     }
     
     try {
-      // Generate meals using Spoonacular service
-      const meals = await spoonacularService.generateMultipleMealOptions({
+      // Generate meals using Grok AI service
+      const meals = await grokService.generateGLP1Recipes({
         mealType: preferences.mealType || 'lunch',
-        dietaryRestrictions: preferences.dietaryRestrictions,
-        cuisineType: preferences.cuisineType,
-        proteinSource: preferences.proteinSource,
-        avoidIngredients: preferences.avoidIngredients || [],
-        previousMeals: preferences.previousMeals || [],
-        freeTextPrompt: preferences.freeTextPrompt,
-        minProtein: preferences.proteinTarget || 20,
-        minFiber: preferences.fiberTarget || 4,
-        maxCalories: preferences.maxCalories || (preferences.calorieRange?.max) || 600,
-        maxReadyTime: preferences.maxCookingTime,
-        cookingMethod: preferences.cookingMethod,
-        equipmentAvailable: preferences.equipmentAvailable,
-        mealPrepOnly: preferences.mealPrepOnly,
-        surpriseMe: preferences.surpriseMe,
-        numOptions: preferences.numOptions || 2
+        dietaryRestrictions: preferences.dietaryRestrictions || [],
+        allergies: preferences.allergies || [],
+        numOptions: preferences.numOptions || 2,
+        maxCookingTime: preferences.maxCookingTime || 30,
+        proteinTarget: preferences.proteinTarget || 20,
+        fiberTarget: preferences.fiberTarget || 4,
+        calorieRange: preferences.calorieRange || { min: 400, max: 600 },
+        creativityLevel: preferences.creativityLevel || 'flavorful-twists',
+        assemblyToRecipeRatio: preferences.assemblyToRecipeRatio || 0.6
       });
       
       const duration = Date.now() - startTime;
@@ -152,14 +146,9 @@ export async function POST(request: NextRequest) {
     const duration = Date.now() - startTime;
     console.error(`Complete meal generation failure after ${duration}ms:`, error);
     
-    return NextResponse.json(
-      { 
-        success: false,
-        error: 'Failed to generate meal options',
-        details: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
-      },
-      { status: 500 }
-    );
+    return createErrorResponse(error, 500, 'MEAL_GENERATION_FAILED');
   }
 }
+
+// Export the POST handler with rate limiting
+export const POST = withRateLimit(handlePOST, rateLimiters.aiGeneration);

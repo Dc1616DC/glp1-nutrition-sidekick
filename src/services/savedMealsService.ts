@@ -1,53 +1,28 @@
 import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, updateDoc, where } from 'firebase/firestore';
 import { app } from '../firebase/config';
+import { SavedMeal, SaveMealRequest } from '../types/savedMeals';
+import { offlineService } from './offlineService';
 
 const db = getFirestore(app);
 
-export interface SavedMeal {
-  id: string;
-  userId: string;
-  title: string;
-  description?: string;
-  ingredients: string[];
-  instructions: string[];
-  nutritionTotals: {
-    calories: number;
-    protein: number;
-    fiber: number;
-    carbs?: number;
-    fat?: number;
-  };
-  servingSize: string;
-  cookingTime: number;
-  mealType: string;
-  tags: string[];
-  rating?: number; // 1-5 stars
-  notes?: string;
-  source: 'ai_generated' | 'curated' | 'imported';
-  originalGenerationData?: any; // Store original API response for regeneration
-  savedAt: Date;
-  lastAccessedAt?: Date;
-  isPrivate: boolean;
-  generationPreferences?: any; // Store preferences used to generate this meal
-}
+// Helper function to remove undefined values from objects (Firebase doesn't allow them)
+const cleanUndefinedValues = <T>(obj: T): T => {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(cleanUndefinedValues) as T;
+  if (typeof obj === 'object') {
+    const cleaned: Record<string, unknown> = {};
+    Object.keys(obj as Record<string, unknown>).forEach(key => {
+      const value = (obj as Record<string, unknown>)[key];
+      if (value !== undefined) {
+        cleaned[key] = cleanUndefinedValues(value);
+      }
+    });
+    return cleaned as T;
+  }
+  return obj;
+};
 
-export interface SaveMealRequest {
-  meal: {
-    title: string;
-    description?: string;
-    ingredients: string[];
-    instructions: string[];
-    nutritionTotals: any;
-    servingSize: string;
-    cookingTime: number;
-    mealType: string;
-  };
-  tags?: string[];
-  notes?: string;
-  source?: 'ai_generated' | 'curated' | 'imported';
-  originalData?: any;
-  generationPreferences?: any;
-}
+// Types are now imported from ../types/savedMeals
 
 class SavedMealsService {
   /**
@@ -60,41 +35,59 @@ class SavedMealsService {
       const savedMeal: SavedMeal = {
         id: mealId,
         userId,
-        title: saveRequest.meal.title,
-        description: saveRequest.meal.description,
+        title: saveRequest.meal.title || 'Untitled Meal',
+        description: saveRequest.meal.description || '',
         ingredients: saveRequest.meal.ingredients || [],
         instructions: saveRequest.meal.instructions || [],
-        nutritionTotals: saveRequest.meal.nutritionTotals || {},
+        nutritionTotals: saveRequest.meal.nutritionTotals || { calories: 0, protein: 0, fiber: 0 },
         servingSize: saveRequest.meal.servingSize || '1 serving',
         cookingTime: saveRequest.meal.cookingTime || 30,
         mealType: saveRequest.meal.mealType || 'lunch',
         tags: saveRequest.tags || [],
-        notes: saveRequest.notes || null,
+        notes: saveRequest.notes || '',
         source: saveRequest.source || 'ai_generated',
-        originalGenerationData: saveRequest.originalData || null,
-        generationPreferences: saveRequest.generationPreferences || null,
+        originalGenerationData: saveRequest.originalData || {},
+        generationPreferences: saveRequest.generationPreferences || {},
         savedAt: new Date(),
         isPrivate: true // All meals are private by default
       };
 
       const mealRef = doc(db, 'savedMeals', mealId);
-      await setDoc(mealRef, {
+      
+      // Clean the saved meal object to remove any undefined values
+      const cleanedSavedMeal = cleanUndefinedValues({
         ...savedMeal,
         savedAt: serverTimestamp()
       });
+      
+      await setDoc(mealRef, cleanedSavedMeal);
 
       console.log(`✅ Saved meal "${savedMeal.title}" for user ${userId}`);
       return savedMeal;
     } catch (error) {
-      console.error('Error saving meal:', error);
-      throw error;
+      console.error('Error saving meal to Firebase, attempting offline storage:', error);
+      
+      // Try to save offline if Firebase fails
+      try {
+        await offlineService.saveMealOffline({
+          ...savedMeal,
+          userId,
+          source: 'offline_fallback'
+        });
+        console.log(`💾 Saved meal "${savedMeal.title}" offline for user ${userId}`);
+        return savedMeal;
+      } catch (offlineError) {
+        console.error('Failed to save meal both online and offline:', offlineError);
+        throw error;
+      }
     }
   }
 
   /**
-   * Get user's saved meals
+   * Get user's saved meals with optional filters and sorting
    */
   async getUserSavedMeals(userId: string): Promise<SavedMeal[]> {
+    // TODO: Implement filters and sort when needed
     try {
       const mealsRef = collection(db, 'savedMeals');
       const q = query(
@@ -108,10 +101,36 @@ class SavedMealsService {
       
       snapshot.forEach(doc => {
         const data = doc.data();
+        
+        // Handle different date formats - could be Timestamp, Date, or string
+        let savedAtDate: Date;
+        if (data.savedAt?.toDate) {
+          // Firestore Timestamp
+          savedAtDate = data.savedAt.toDate();
+        } else if (data.savedAt instanceof Date) {
+          // Already a Date object
+          savedAtDate = data.savedAt;
+        } else if (typeof data.savedAt === 'string') {
+          // String date
+          savedAtDate = new Date(data.savedAt);
+        } else {
+          // Fallback to current date
+          savedAtDate = new Date();
+        }
+        
+        let lastAccessedDate: Date | undefined;
+        if (data.lastAccessedAt?.toDate) {
+          lastAccessedDate = data.lastAccessedAt.toDate();
+        } else if (data.lastAccessedAt instanceof Date) {
+          lastAccessedDate = data.lastAccessedAt;
+        } else if (typeof data.lastAccessedAt === 'string') {
+          lastAccessedDate = new Date(data.lastAccessedAt);
+        }
+        
         meals.push({
           ...data,
-          savedAt: data.savedAt?.toDate() || new Date(),
-          lastAccessedAt: data.lastAccessedAt?.toDate()
+          savedAt: savedAtDate,
+          lastAccessedAt: lastAccessedDate
         } as SavedMeal);
       });
 
@@ -146,9 +165,21 @@ class SavedMealsService {
         lastAccessedAt: serverTimestamp()
       });
       
+      // Handle different date formats
+      let savedAtDate: Date;
+      if (data.savedAt?.toDate) {
+        savedAtDate = data.savedAt.toDate();
+      } else if (data.savedAt instanceof Date) {
+        savedAtDate = data.savedAt;
+      } else if (typeof data.savedAt === 'string') {
+        savedAtDate = new Date(data.savedAt);
+      } else {
+        savedAtDate = new Date();
+      }
+      
       return {
         ...data,
-        savedAt: data.savedAt?.toDate() || new Date(),
+        savedAt: savedAtDate,
         lastAccessedAt: new Date()
       } as SavedMeal;
     } catch (error) {
@@ -225,7 +256,33 @@ class SavedMealsService {
       throw new Error('Rating must be between 1 and 5');
     }
 
-    return await this.updateSavedMeal(mealId, userId, { rating });
+    try {
+      return await this.updateSavedMeal(mealId, userId, { rating });
+    } catch (error) {
+      console.error('Error rating meal online, attempting offline storage:', error);
+      
+      // Try to save rating offline if Firebase fails
+      try {
+        await offlineService.rateMealOffline({
+          mealId,
+          userId,
+          rating,
+          timestamp: Date.now()
+        });
+        console.log(`💾 Saved rating for meal ${mealId} offline`);
+        
+        // Return the meal with updated rating - this is best effort
+        const meal = await this.getSavedMeal(mealId, userId);
+        if (meal) {
+          meal.rating = rating;
+          return meal;
+        }
+        throw error;
+      } catch (offlineError) {
+        console.error('Failed to save rating both online and offline:', offlineError);
+        throw error;
+      }
+    }
   }
 
   /**
@@ -253,10 +310,36 @@ class SavedMealsService {
       
       snapshot.forEach(doc => {
         const data = doc.data();
+        
+        // Handle different date formats - could be Timestamp, Date, or string
+        let savedAtDate: Date;
+        if (data.savedAt?.toDate) {
+          // Firestore Timestamp
+          savedAtDate = data.savedAt.toDate();
+        } else if (data.savedAt instanceof Date) {
+          // Already a Date object
+          savedAtDate = data.savedAt;
+        } else if (typeof data.savedAt === 'string') {
+          // String date
+          savedAtDate = new Date(data.savedAt);
+        } else {
+          // Fallback to current date
+          savedAtDate = new Date();
+        }
+        
+        let lastAccessedDate: Date | undefined;
+        if (data.lastAccessedAt?.toDate) {
+          lastAccessedDate = data.lastAccessedAt.toDate();
+        } else if (data.lastAccessedAt instanceof Date) {
+          lastAccessedDate = data.lastAccessedAt;
+        } else if (typeof data.lastAccessedAt === 'string') {
+          lastAccessedDate = new Date(data.lastAccessedAt);
+        }
+        
         meals.push({
           ...data,
-          savedAt: data.savedAt?.toDate() || new Date(),
-          lastAccessedAt: data.lastAccessedAt?.toDate()
+          savedAt: savedAtDate,
+          lastAccessedAt: lastAccessedDate
         } as SavedMeal);
       });
 

@@ -1,4 +1,4 @@
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, serverTimestamp, collection, query, where, orderBy, limit, getDocs, DocumentData } from 'firebase/firestore';
 import { app } from '../firebase/config';
 
 const db = getFirestore(app);
@@ -171,7 +171,7 @@ class SubscriptionService {
   /**
    * Get user's meal generation history for analytics
    */
-  async getMealGenerationHistory(userId: string, days: number = 30): Promise<any[]> {
+  async getMealGenerationHistory(userId: string, days: number = 30): Promise<DocumentData[]> {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
@@ -186,7 +186,7 @@ class SubscriptionService {
       );
       
       const snapshot = await getDocs(q);
-      const history: any[] = [];
+      const history: DocumentData[] = [];
       
       snapshot.forEach(doc => {
         history.push({
@@ -258,11 +258,11 @@ class SubscriptionService {
   /**
    * Record a meal generation in history (for analytics)
    */
-  async recordMealGeneration(userId: string, mealData: any): Promise<void> {
+  async recordMealGeneration(_userId: string, mealData: Record<string, unknown>): Promise<void> {
     try {
       const historyRef = collection(db, 'userMealHistory');
       await setDoc(doc(historyRef), {
-        userId,
+        userId: _userId,
         mealData,
         generatedAt: serverTimestamp(),
         source: mealData.source || 'unknown'

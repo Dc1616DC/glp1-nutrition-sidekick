@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { grokService } from '../../../services/grokService';
+import { withRateLimit, rateLimiters } from '../../../lib/rateLimiter';
 
 export const maxDuration = 30;
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   const startTime = Date.now();
   
   try {
@@ -43,3 +44,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// Export with rate limiting for enhancement operations
+export const POST = withRateLimit(handlePOST, rateLimiters.enhancement);

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withRateLimit, rateLimiters } from '../../../lib/rateLimiter';
 
 // Enhanced tips with specific ingredient guidance
 const FALLBACK_TIPS: { [key: string]: string } = {
@@ -12,7 +13,7 @@ const FALLBACK_TIPS: { [key: string]: string } = {
   cravings: 'SATISFY with: protein + healthy fat combos (apple with almond butter), high-fiber foods, chromium-rich foods like broccoli. AVOID: refined sugars that trigger more cravings.'
 };
 
-export async function POST(request: NextRequest) {
+async function handlePOST(request: NextRequest) {
   try {
     const { symptom, severity } = await request.json();
 
@@ -49,3 +50,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ tip: fallbackTip });
   }
 }
+
+// Export with rate limiting for symptom-based generation
+export const POST = withRateLimit(handlePOST, rateLimiters.symptomGeneration);

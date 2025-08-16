@@ -1,5 +1,6 @@
 import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, serverTimestamp, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { app } from '../firebase/config';
+import { offlineService } from './offlineService';
 
 const db = getFirestore(app);
 
@@ -172,8 +173,42 @@ class MealLoggingService {
       
       return await this.getMealLogForDate(userId, today);
     } catch (error) {
-      console.error('Error logging meal:', error);
-      throw error;
+      console.error('Error logging meal to Firebase, attempting offline storage:', error);
+      
+      // Try to save meal log offline if Firebase fails
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const logData = {
+          userId,
+          date: today,
+          mealEntry: {
+            id: `${mealEntry.mealSlot}_${Date.now()}`,
+            mealSlot: mealEntry.mealSlot,
+            timeEaten: mealEntry.timeEaten || null,
+            hadProtein: mealEntry.hadProtein,
+            hadVegetables: mealEntry.hadVegetables,
+            mealName: mealEntry.mealName || null,
+            notes: mealEntry.notes || null,
+            loggedAt: Date.now()
+          }
+        };
+        
+        await offlineService.logMealOffline(logData);
+        console.log(`💾 Saved meal log offline for user ${userId}`);
+        
+        // Return a best-effort daily log structure
+        return {
+          id: `${userId}_${today}`,
+          userId,
+          date: today,
+          meals: [logData.mealEntry as any], // Convert to proper format
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      } catch (offlineError) {
+        console.error('Failed to log meal both online and offline:', offlineError);
+        throw error;
+      }
     }
   }
 

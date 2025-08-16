@@ -10,6 +10,14 @@ export default function MealsHub() {
 
   const mealFeatures = [
     {
+      href: '/meals',
+      icon: '📖',
+      title: 'Recipe Library',
+      description: 'Browse our curated collection of GLP-1 friendly recipes',
+      free: true,
+      action: 'Browse Recipes'
+    },
+    {
       href: '/meal-generator',
       icon: '🤖',
       title: 'AI Meal Generator',
@@ -22,7 +30,7 @@ export default function MealsHub() {
       icon: '📚',
       title: 'My Cookbook',
       description: 'Your collection of saved and favorite meals',
-      action: 'Browse Recipes'
+      action: 'View Saved'
     },
     {
       href: '/shopping-list',
@@ -66,6 +74,13 @@ export default function MealsHub() {
               }`}
             >
               <div className="p-8">
+                {feature.free && (
+                  <div className="absolute top-4 right-4">
+                    <span className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      FREE
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className={`text-5xl mb-4 ${feature.primary ? 'animate-pulse' : ''}`}>

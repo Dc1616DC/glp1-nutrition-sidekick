@@ -6,9 +6,13 @@ import { subscriptionService } from '../../services/subscriptionService';
 import { savedMealsService, SavedMeal } from '../../services/savedMealsService';
 import { shoppingListService } from '../../services/shoppingListService';
 import { useRouter } from 'next/navigation';
+import StarRating from '../../components/StarRating';
+import CookbookSkeleton from '../../components/skeletons/CookbookSkeleton';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 export default function CookbookPage() {
   const { user, loading: authLoading } = useAuth();
+  const { isOnline } = useOnlineStatus();
   const router = useRouter();
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +21,7 @@ export default function CookbookPage() {
   const [selectedTag, setSelectedTag] = useState<string>('');
   const [allTags, setAllTags] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string>('');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name'>('newest');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'rating'>('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedMeal, setSelectedMeal] = useState<SavedMeal | null>(null);
   // Removed mealStats - keeping it simple
@@ -91,6 +95,23 @@ export default function CookbookPage() {
     }
   };
 
+  const handleRateMeal = async (mealId: string, rating: number) => {
+    if (!user) return;
+    
+    try {
+      await savedMealsService.rateMeal(mealId, user.uid, rating);
+      setSavedMeals(prev => prev.map(meal => 
+        meal.id === mealId ? { ...meal, rating } : meal
+      ));
+      if (selectedMeal && selectedMeal.id === mealId) {
+        setSelectedMeal({ ...selectedMeal, rating });
+      }
+    } catch (error) {
+      console.error('Error rating meal:', error);
+      alert('Failed to rate meal');
+    }
+  };
+
   const createShoppingListFromMeal = async (meal: SavedMeal) => {
     if (!user) return;
     
@@ -126,7 +147,8 @@ export default function CookbookPage() {
       switch (sortBy) {
         case 'oldest':
           return a.savedAt.getTime() - b.savedAt.getTime();
-        // Removed rating sort
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
         case 'name':
           return a.title.localeCompare(b.title);
         default: // newest
@@ -137,14 +159,7 @@ export default function CookbookPage() {
   // Removed rating functionality - keeping it simple
 
   if (authLoading || loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading your cookbook...</p>
-        </div>
-      </div>
-    );
+    return <CookbookSkeleton />;
   }
 
   if (!user) return null;
@@ -205,11 +220,43 @@ export default function CookbookPage() {
         <p className="text-gray-600">Your personal collection of saved meals and recipes</p>
       </div>
 
+      {/* Offline Warning */}
+      {!isOnline && (
+        <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <div>
+              <h3 className="font-semibold text-orange-900">You're offline</h3>
+              <p className="text-sm text-orange-700">
+                Your saved meals are displayed from cache. Changes may not sync until you're back online.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Simple Stats */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <div className="text-center">
-          <div className="text-3xl font-bold text-blue-600">{savedMeals.length}</div>
-          <div className="text-gray-600">Saved Meals</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="text-3xl font-bold text-blue-600">{savedMeals.length}</div>
+            <div className="text-gray-600">Saved Meals</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold text-yellow-500">
+              {savedMeals.filter(m => m.rating).length > 0 
+                ? (savedMeals.filter(m => m.rating).reduce((sum, meal) => sum + (meal.rating || 0), 0) / savedMeals.filter(m => m.rating).length).toFixed(1)
+                : '—'
+              }
+            </div>
+            <div className="text-gray-600">Avg Rating</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold text-green-600">
+              {savedMeals.filter(m => m.rating && m.rating >= 4).length}
+            </div>
+            <div className="text-gray-600">Favorites (4+ ⭐)</div>
+          </div>
         </div>
       </div>
 
@@ -265,6 +312,7 @@ export default function CookbookPage() {
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
+              <option value="rating">Highest Rated</option>
               <option value="name">A-Z</option>
             </select>
           </div>
@@ -339,6 +387,16 @@ export default function CookbookPage() {
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-800 mb-1">{meal.title}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <StarRating 
+                        rating={meal.rating || 0} 
+                        onRatingChange={(rating) => handleRateMeal(meal.id, rating)}
+                        size="sm"
+                      />
+                      {meal.rating && (
+                        <span className="text-xs text-gray-500">({meal.rating}/5)</span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600 capitalize">
                       {meal.mealType} • {meal.cookingTime} mins
                     </p>
@@ -420,10 +478,20 @@ export default function CookbookPage() {
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">{selectedMeal.title}</h2>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-2">{selectedMeal.title}</h2>
+                  <div className="flex items-center gap-3">
+                    <StarRating 
+                      rating={selectedMeal.rating || 0} 
+                      onRatingChange={(rating) => handleRateMeal(selectedMeal.id, rating)}
+                      size="md"
+                      showText
+                    />
+                  </div>
+                </div>
                 <button
                   onClick={() => setSelectedMeal(null)}
-                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                  className="text-gray-400 hover:text-gray-600 text-2xl ml-4"
                 >
                   ×
                 </button>

@@ -160,11 +160,11 @@ export class USDAService {
   /**
    * Select the best matching food from search results
    */
-  private selectBestMatch(foods: any[], searchTerm: string): any {
+  private selectBestMatch(foods: Record<string, unknown>[], searchTerm: string): Record<string, unknown> {
     // Simple scoring: prefer items with more complete nutrition data and closer name match
     const scored = foods.map(food => {
-      const nameScore = this.calculateNameSimilarity(food.description, searchTerm);
-      const dataScore = food.foodNutrients ? food.foodNutrients.length : 0;
+      const nameScore = this.calculateNameSimilarity(food.description as string, searchTerm);
+      const dataScore = food.foodNutrients ? (food.foodNutrients as unknown[]).length : 0;
       return { ...food, score: nameScore + (dataScore * 0.1) };
     });
 

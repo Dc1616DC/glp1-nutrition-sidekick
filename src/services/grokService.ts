@@ -1,27 +1,56 @@
 import OpenAI from 'openai';
 import { Recipe, MealPreferences } from '../types/recipe';
+import { MealType, CreativityLevel, DifficultyLevel } from '../types/meal';
+import { NutritionInfo } from '../types/common';
 
 const grok = new OpenAI({
   apiKey: process.env.GROK_API_KEY!,
   baseURL: 'https://api.x.ai/v1',
 });
 
+interface CalorieRange {
+  min: number;
+  max: number;
+}
+
 interface GLP1RecipePrompt {
-  mealType: string;
+  mealType: MealType;
   restrictions: string[];
   numOptions: number;
   proteinTarget: number;
   fiberTarget: number;
-  calorieRange: {min: number, max: number};
+  calorieRange: CalorieRange;
   maxCookingTime: number;
 }
 
 // Enhanced preferences for chef-inspired meals
 interface EnhancedMealPreferences extends MealPreferences {
-  allergies?: string[]; // New: Pre-generation allergies filter
-  creativityLevel?: 'simple' | 'flavorful-twists' | 'chef-inspired';
-  assemblyToRecipeRatio?: number; // Default 60% assemblies, 40% recipes
-  availableIngredients?: string[]; // Pantry ingredients to prioritize
+  allergies?: string[];
+  creativityLevel?: CreativityLevel;
+  assemblyToRecipeRatio?: number; // 0-1 ratio (0.6 = 60% assemblies, 40% recipes)
+  availableIngredients?: string[];
+}
+
+interface GrokRecipeResponse {
+  recipes: Array<{
+    title?: string;
+    chefName?: string;
+    type?: 'quick-assembly' | 'structured-recipe';
+    appealingClassification?: string;
+    servings?: number;
+    cookingTime?: number;
+    prepTime?: number;
+    difficulty?: DifficultyLevel;
+    ingredients?: string[];
+    instructions?: string[];
+    assemblySteps?: string[];
+    chefTips?: string[];
+    satisfactionFactors?: string[];
+    glp1Benefits?: string;
+    mealPrepFriendly?: boolean;
+    estimatedNutrition?: NutritionInfo;
+    tags?: string[];
+  }>;
 }
 
 export class GrokService {
@@ -63,7 +92,7 @@ export class GrokService {
       }
 
       // Convert to our Recipe interface with chef-inspired enhancements
-      const recipes = generated.recipes.map((recipe: any, index: number) => ({
+      const recipes = (generated as GrokRecipeResponse).recipes.map((recipe, index: number) => ({
         id: `grok_chef_${Date.now()}_${index}`,
         title: recipe.title || recipe.chefName || 'Delicious Creation',
         ingredients: this.parseIngredients(recipe.ingredients || []),
@@ -444,9 +473,9 @@ Make every meal sound delicious and feel like a special treat while meeting all 
   }
 
   /**
-   * Parse ingredients from various formats into RecipeIngredient objects
+   * Parse ingredients from various formats into Ingredient objects
    */
-  private parseIngredients(ingredients: any[]): any[] {
+  private parseIngredients(ingredients: (string | { name: string; amount: number; unit: string })[]): Array<{ name: string; amount: number; unit: string }> {
     return ingredients.map((ingredient, index) => {
       // If already an object with name, amount, unit - return as is
       if (typeof ingredient === 'object' && ingredient.name && ingredient.amount && ingredient.unit) {
@@ -461,9 +490,9 @@ Make every meal sound delicious and feel like a special treat while meeting all 
 
       // Fallback for any other format
       return {
-        name: ingredient?.name || ingredient || `Ingredient ${index + 1}`,
-        amount: ingredient?.amount || 1,
-        unit: ingredient?.unit || 'serving'
+        name: `Ingredient ${index + 1}`,
+        amount: 1,
+        unit: 'serving'
       };
     });
   }
@@ -471,7 +500,7 @@ Make every meal sound delicious and feel like a special treat while meeting all 
   /**
    * Parse ingredient strings like "1 cup chicken breast" into structured objects
    */
-  private parseIngredientString(ingredientStr: string): any {
+  private parseIngredientString(ingredientStr: string): { name: string; amount: number; unit: string } {
     // Common patterns for ingredient parsing
     const patterns = [
       // "1 cup chicken breast", "2 tablespoons olive oil"

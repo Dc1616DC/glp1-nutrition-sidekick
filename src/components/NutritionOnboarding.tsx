@@ -52,7 +52,7 @@ export default function NutritionOnboarding({
               <h2 className="text-2xl font-bold text-gray-900">Your GLP-1 Nutrition Guide</h2>
               <button
                 onClick={handleComplete}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-light"
+                className="text-gray-500 hover:text-gray-700 text-2xl font-light p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 ×
               </button>

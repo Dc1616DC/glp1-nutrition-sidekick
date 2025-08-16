@@ -24,8 +24,9 @@ export default function AuthTestPage() {
         await signInWithEmailAndPassword(auth, email, password);
         setMessage('Signed in successfully!');
       }
-    } catch (error: any) {
-      setMessage(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setMessage(`Error: ${errorMessage}`);
     }
   };
 
@@ -33,8 +34,9 @@ export default function AuthTestPage() {
     try {
       await auth.signOut();
       setMessage('Signed out successfully!');
-    } catch (error: any) {
-      setMessage(`Error: ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setMessage(`Error: ${errorMessage}`);
     }
   };
 

@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { signOutUser } from '../firebase/auth';
+import { useOnlineStatus } from '../hooks/useOnlineStatus';
 
 export default function Navbar() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const { isOnline, connectionType } = useOnlineStatus();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -56,6 +58,7 @@ export default function Navbar() {
       icon: '🍽️',
       href: '/meals-hub',
       subItems: [
+        { href: '/meals', label: 'Recipe Library' },
         { href: '/meal-generator', label: 'AI Meal Generator' },
         { href: '/cookbook', label: 'My Cookbook' },
         { href: '/shopping-list', label: 'Shopping Lists' },
@@ -139,6 +142,25 @@ export default function Navbar() {
                 )}
               </div>
             ))}
+
+            {/* Offline Status Indicator */}
+            <div className="mr-2 flex items-center">
+              <div className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${
+                isOnline 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-orange-100 text-orange-700'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isOnline ? 'bg-green-500' : 'bg-orange-500'
+                }`}></div>
+                <span className="hidden sm:inline">
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
+                {connectionType && connectionType !== 'unknown' && isOnline && (
+                  <span className="text-xs opacity-75">({connectionType})</span>
+                )}
+              </div>
+            </div>
 
             {/* User Menu */}
             <div className="ml-4 flex items-center space-x-3">
@@ -228,6 +250,23 @@ export default function Navbar() {
               </div>
             ))}
             
+            {/* Mobile Offline Status */}
+            <div className="px-3 py-2">
+              <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${
+                isOnline 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-orange-100 text-orange-700'
+              }`}>
+                <div className={`w-2 h-2 rounded-full ${
+                  isOnline ? 'bg-green-500' : 'bg-orange-500'
+                }`}></div>
+                <span>{isOnline ? 'Online' : 'Offline'}</span>
+                {connectionType && connectionType !== 'unknown' && isOnline && (
+                  <span className="text-xs opacity-75">({connectionType})</span>
+                )}
+              </div>
+            </div>
+
             {/* Mobile User Section */}
             <div className="border-t border-gray-200 pt-3 mt-3">
               {user ? (

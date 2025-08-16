@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
-import MealReminders from '../components/MealReminders';
 import NutritionOnboarding from '../components/NutritionOnboarding';
 import EveningToolkit from '../components/EveningToolkit';
 import EveningToolkitFollowUp from '../components/EveningToolkitFollowUp';
+import NotificationPrompt from '../components/NotificationPrompt';
+import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import { useEffect, useState } from 'react';
 import {
   getNotificationPermissionState,
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [showNutritionOnboarding, setShowNutritionOnboarding] = useState(false);
   const [showEveningToolkit, setShowEveningToolkit] = useState(false);
   const [showFollowUp, setShowFollowUp] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [todaysStats, setTodaysStats] = useState<any>(null);
   const [commitments, setCommitments] = useState<any>(null);
   const [hasPremiumAccess, setHasPremiumAccess] = useState<boolean | null>(null);
@@ -40,6 +42,15 @@ export default function Dashboard() {
       const hasSeenOnboarding = localStorage.getItem('nutritionOnboardingSeen');
       if (!hasSeenOnboarding) {
         setTimeout(() => setShowNutritionOnboarding(true), 1500);
+      } else {
+        // Show notification prompt after onboarding is complete
+        const notificationPromptShown = localStorage.getItem('notificationPromptShown');
+        if (!notificationPromptShown) {
+          setTimeout(() => {
+            setShowNotificationPrompt(true);
+            localStorage.setItem('notificationPromptShown', 'true');
+          }, 3000);
+        }
       }
       
       // Load user data
@@ -63,15 +74,8 @@ export default function Dashboard() {
       }
     }
 
-    // Check if Evening Toolkit should be highlighted
-    const eveningToolkitEnabled = localStorage.getItem('eveningToolkitEnabled') === 'true';
-    if (isEvening && eveningToolkitEnabled && user) {
-      const lastShown = localStorage.getItem('eveningToolkitLastShown');
-      const today = new Date().toDateString();
-      if (lastShown !== today) {
-        setTimeout(() => setShowEveningToolkit(true), 3000);
-      }
-    }
+    // Note: Evening Toolkit auto-popup removed - it should only be manually triggered
+    // Users can access it through the Explore Features grid when they want it
   }, [user, loading, isEvening]);
 
   const loadUserData = async () => {
@@ -97,6 +101,15 @@ export default function Dashboard() {
   // Smart contextual actions based on time and commitments
   const getSmartActions = () => {
     const actions = [];
+    
+    // Show recipe library for all users
+    actions.push({
+      href: '/meals',
+      icon: '📖',
+      title: 'Browse Recipes',
+      description: 'Explore our recipe library',
+      badge: 'FREE'
+    });
     
     // Always show meal generator as primary action
     actions.push({
@@ -164,14 +177,7 @@ export default function Dashboard() {
 
   // Show loading or signed out states
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!user) {
@@ -213,10 +219,17 @@ export default function Dashboard() {
         <NutritionOnboarding onClose={() => setShowNutritionOnboarding(false)} />
       )}
       {showEveningToolkit && (
-        <EveningToolkit onClose={() => setShowEveningToolkit(false)} />
+        <EveningToolkit onSkip={() => {
+          setShowEveningToolkit(false);
+          // Store "maybe later" preference to prevent auto-popup for a while
+          localStorage.setItem('eveningToolkitMaybeLater', Date.now().toString());
+        }} />
       )}
       {showFollowUp && (
         <EveningToolkitFollowUp onClose={() => setShowFollowUp(false)} />
+      )}
+      {showNotificationPrompt && (
+        <NotificationPrompt onComplete={() => setShowNotificationPrompt(false)} />
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -278,7 +291,7 @@ export default function Dashboard() {
               <div className="text-2xl mr-4">💡</div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-emerald-800 mb-2">
-                  This Week's Intention
+                  This Week&apos;s Intention
                 </h3>
                 <div className="text-emerald-700 leading-relaxed">
                   {getWeeklyTip()}

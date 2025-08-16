@@ -107,7 +107,7 @@ export default function AllergiesFilter({
                       <span>{allergy.label}</span>
                       <button
                         onClick={() => toggleAllergy(allergyId)}
-                        className="text-red-600 hover:text-red-800 ml-1"
+                        className="text-red-600 hover:text-red-800 ml-1 p-1 min-h-[32px] min-w-[32px] flex items-center justify-center"
                       >
                         ×
                       </button>

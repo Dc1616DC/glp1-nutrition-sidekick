@@ -1,4 +1,4 @@
-import { getFirestore, collection, query, orderBy, getDocs, where, Timestamp } from 'firebase/firestore';
+import { getFirestore, collection, query, orderBy, getDocs, where, Timestamp, DocumentData } from 'firebase/firestore';
 import { app } from '../firebase/config';
 
 const db = getFirestore(app);
@@ -82,7 +82,7 @@ class ProAnalyticsService {
   /**
    * Fetch symptom logs for analysis
    */
-  private async fetchSymptomLogs(userId: string, days: number): Promise<any[]> {
+  private async fetchSymptomLogs(userId: string, days: number): Promise<DocumentData[]> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     
@@ -94,7 +94,7 @@ class ProAnalyticsService {
     );
     
     const snapshot = await getDocs(q);
-    const logs: any[] = [];
+    const logs: DocumentData[] = [];
     
     snapshot.forEach((doc) => {
       logs.push({ id: doc.id, ...doc.data() });
@@ -108,7 +108,7 @@ class ProAnalyticsService {
   /**
    * Analyze symptom patterns and timing
    */
-  private analyzeSymptomPatterns(logs: any[]): SymptomPattern[] {
+  private analyzeSymptomPatterns(logs: DocumentData[]): SymptomPattern[] {
     const patterns: { [key: string]: SymptomPattern } = {};
     
     logs.forEach(log => {
@@ -146,7 +146,7 @@ class ProAnalyticsService {
   /**
    * Calculate progress insights over time
    */
-  private calculateProgressInsights(symptomLogs: any[]): ProgressInsight[] {
+  private calculateProgressInsights(symptomLogs: DocumentData[]): ProgressInsight[] {
     const insights: ProgressInsight[] = [];
     
     // Analyze symptom severity trends
@@ -192,7 +192,7 @@ class ProAnalyticsService {
   /**
    * Build predictive model for symptom risks
    */
-  private buildPredictiveModel(symptomLogs: any[]): PredictiveModel {
+  private buildPredictiveModel(_symptomLogs: DocumentData[]): PredictiveModel {
     // Analyze risk factors
     const riskFactors = [
       {
@@ -258,7 +258,7 @@ class ProAnalyticsService {
   /**
    * Calculate personalized health score
    */
-  private calculatePersonalizedScore(symptomLogs: any[]): any {
+  private calculatePersonalizedScore(symptomLogs: DocumentData[]): { overall: number; symptomManagement: number; consistency: number } {
     const avgSeverity = this.calculateAverageSeverity(symptomLogs);
     const consistency = this.calculateConsistencyScore(symptomLogs);
     
@@ -282,7 +282,7 @@ class ProAnalyticsService {
     return 'night';
   }
 
-  private calculateTrend(logs: any[], symptom: string): 'improving' | 'worsening' | 'stable' {
+  private calculateTrend(logs: DocumentData[], symptom: string): 'improving' | 'worsening' | 'stable' {
     const symptomLogs = logs.filter(log => log.symptom === symptom);
     if (symptomLogs.length < 4) return 'stable';
     
@@ -299,12 +299,12 @@ class ProAnalyticsService {
     return 'stable';
   }
 
-  private calculateAverageSeverity(logs: any[]): number {
+  private calculateAverageSeverity(logs: DocumentData[]): number {
     if (logs.length === 0) return 0;
     return logs.reduce((sum, log) => sum + log.severity, 0) / logs.length;
   }
 
-  private calculateConsistencyScore(logs: any[]): number {
+  private calculateConsistencyScore(logs: DocumentData[]): number {
     if (logs.length < 7) return 0.5;
     
     // Calculate consistency based on regular tracking
@@ -349,9 +349,8 @@ class ProAnalyticsService {
       }
     });
     
-    // Set nutrition targets based on effectiveness analysis
-    const bestMeal = analytics.mealEffectiveness
-      .sort((a, b) => b.symptomReduction - a.symptomReduction)[0];
+    // Set default nutrition targets
+    const bestMeal = null; // No meal effectiveness tracking
     
     const nutritionTargets = {
       protein: bestMeal?.protein || 22,

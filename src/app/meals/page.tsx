@@ -31,18 +31,9 @@ export default function MealsPage() {
 
   // --- Data Fetching ---
   // `useEffect` runs code after the component has rendered.
-  // We need to wait for authentication to complete before fetching meals
+  // Fetch meals regardless of auth status - this is for free users too
   useEffect(() => {
     const fetchMeals = async () => {
-      // Wait for auth to complete
-      if (authLoading) return;
-      
-      // Redirect to signin if not authenticated
-      if (!user) {
-        router.push('/signin?redirect=meals');
-        return;
-      }
-
       try {
         setLoading(true); // Start loading
         setError(null); // Clear previous errors
@@ -57,7 +48,7 @@ export default function MealsPage() {
     };
 
     fetchMeals();
-  }, [user, authLoading, router]); // Dependencies: user, authLoading, router
+  }, []); // No dependencies - fetch on mount
 
   // --- Filtering Logic ---
   // `useMemo` is a performance optimization hook. It re-calculates `filteredMeals`
@@ -94,23 +85,6 @@ export default function MealsPage() {
 
   // --- Render Logic ---
   
-  // Show loading while checking authentication
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render anything if not authenticated (will redirect)
-  if (!user) {
-    return null;
-  }
-
   return (
     <div className="space-y-8">
       <div className="text-center">
@@ -122,12 +96,21 @@ export default function MealsPage() {
 
       {/* AI Suggestion Button */}
       <div className="text-center">
-        <button
-          className="px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-[#7ED321] to-[#50E3C2] rounded-lg shadow-lg hover:scale-105 transform transition-transform duration-200"
-          onClick={() => alert('AI meal generation coming soon!')}
-        >
-          ✨ Get a Custom AI Meal Suggestion
-        </button>
+        {user ? (
+          <button
+            className="px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-[#7ED321] to-[#50E3C2] rounded-lg shadow-lg hover:scale-105 transform transition-transform duration-200"
+            onClick={() => router.push('/meal-generator')}
+          >
+            ✨ Get a Custom AI Meal Suggestion
+          </button>
+        ) : (
+          <button
+            className="px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-[#7ED321] to-[#50E3C2] rounded-lg shadow-lg hover:scale-105 transform transition-transform duration-200"
+            onClick={() => router.push('/signin?redirect=meal-generator')}
+          >
+            ✨ Sign In for AI Meal Suggestions
+          </button>
+        )}
       </div>
 
       {/* Search Input */}

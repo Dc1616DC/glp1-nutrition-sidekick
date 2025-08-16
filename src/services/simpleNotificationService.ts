@@ -12,7 +12,7 @@ export interface NotificationOptions {
   icon?: string;
   badge?: string;
   tag?: string;
-  data?: any;
+  data?: Record<string, unknown>;
   requireInteraction?: boolean;
   actions?: NotificationAction[];
 }

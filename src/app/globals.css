@@ -48,6 +48,27 @@ body {
   }
 }
 
+/* Shimmer animation for skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(229, 231, 235, 0) 0%,
+    rgba(229, 231, 235, 0.5) 50%,
+    rgba(229, 231, 235, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
 .animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
 }

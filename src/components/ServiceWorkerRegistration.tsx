@@ -7,9 +7,9 @@ export default function ServiceWorkerRegistration() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', async () => {
         try {
-          // Register the simple service worker
-          const registration = await navigator.serviceWorker.register('/sw-simple.js');
-          console.log('Service Worker registered successfully:', registration.scope);
+          // Register the enhanced service worker for offline support
+          const registration = await navigator.serviceWorker.register('/sw-enhanced.js');
+          console.log('Enhanced Service Worker registered successfully:', registration.scope);
           
           // Listen for updates
           registration.addEventListener('updatefound', () => {

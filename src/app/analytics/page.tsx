@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import ProAnalyticsDashboard from '../../components/ProAnalyticsDashboard';
-import { useAuth } from '../../context/AuthContext';
 
 export default function AnalyticsPage() {
-  const { user } = useAuth();
   const [showProFeatures, setShowProFeatures] = useState(false);
 
   return (

@@ -1,217 +1,174 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { spoonacularService } from '../../../services/spoonacularService';
+import { GrokService } from '../../../services/grokService';
 import { symptomMealService } from '../../../services/symptomMealService';
-import { cacheService } from '../../../services/cacheService';
 import { subscriptionService } from '../../../services/subscriptionService';
-import { getAuth } from 'firebase-admin/auth';
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { verifyIdToken, isAdminInitialized } from '../../../lib/firebase-admin';
+
+const grokService = new GrokService();
+
+/**
+ * Verify user authentication
+ * Supports both Firebase Admin SDK (production) and fallback for development
+ */
+async function verifyUser(request: NextRequest): Promise<string | null> {
+  const authHeader = request.headers.get('authorization');
+  
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+  
+  const token = authHeader.split('Bearer ')[1];
+  
+  // Try Firebase Admin SDK verification first (production)
+  if (isAdminInitialized()) {
+    try {
+      const decodedToken = await verifyIdToken(token);
+      return decodedToken.uid;
+    } catch (error) {
+      console.error('Firebase token verification failed:', error);
+      return null;
+    }
+  }
+  
+  // Fallback for development when Firebase Admin isn't configured
+  // This should only be used in development environments with explicit opt-in
+  if (process.env.NODE_ENV === 'development' && process.env.ALLOW_DEV_AUTH === 'true') {
+    console.warn('⚠️ Using development authentication fallback - not for production!');
+    // More strict validation for development - must be a known test user ID
+    const allowedDevUserIds = process.env.DEV_USER_IDS?.split(',') || [];
+    if (allowedDevUserIds.includes(token)) {
+      return token;
+    }
+  }
+  
+  return null;
+}
 
 export async function POST(request: NextRequest) {
-  let mealType = 'lunch'; // Default fallback
+  const startTime = Date.now();
   
   try {
-    const requestBody = await request.json();
+    // Verify user authentication
+    const userId = await verifyUser(request);
     
-    // Extract values from nested preferences object or direct properties
-    mealType = requestBody.mealType || 'lunch';
-    const preferences = requestBody.preferences || {};
-    const dietaryRestrictions = preferences.dietaryRestrictions || requestBody.dietaryRestrictions;
-    const cuisineType = preferences.cuisineType || requestBody.cuisineType;
-    const proteinSource = preferences.proteinSource || requestBody.proteinSource;
-    const avoidIngredients = requestBody.avoidIngredients || [];
-    const previousMeals = requestBody.previousMeals || [];
-
-    // Extract enhanced parameters
-    const freeTextPrompt = preferences.freeTextPrompt;
-    const minProtein = preferences.minProtein;
-    const minFiber = preferences.minFiber;
-    const maxCalories = preferences.maxCalories;
-    const maxReadyTime = preferences.maxReadyTime;
-    const surpriseMe = preferences.surpriseMe;
-    const cookingMethod = preferences.cookingMethod;
-    const equipmentAvailable = preferences.equipmentAvailable;
-    const mealPrepOnly = preferences.mealPrepOnly;
-
-    console.log('\n=== GENERATING 2 MEAL OPTIONS WITH SPOONACULAR ===');
-    console.log('Request params:', {
-      mealType,
-      dietaryRestrictions,
-      cuisineType,
-      proteinSource,
-      freeTextPrompt,
-      minProtein,
-      minFiber,
-      maxCalories,
-      maxReadyTime,
-      surpriseMe,
-      cookingMethod,
-      equipmentAvailable,
-      mealPrepOnly,
-      avoidIngredients,
-      previousMeals: previousMeals.length
-    });
-
-    // Check cache first
-    const cacheKey = {
-      mealType,
-      dietaryRestrictions,
-      cuisineType,
-      proteinSource,
-      cookingMethod,
-      equipmentAvailable,
-      minProtein,
-      minFiber,
-      maxCalories,
-      maxReadyTime,
-      surpriseMe,
-      mealPrepOnly,
-      avoidIngredients,
-      previousMealsCount: previousMeals.length
-    };
-    
-    // Get user ID from authorization header for symptom integration
-    let userId = null;
-    let symptomEnhancement = '';
-    
-    try {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        // Initialize Firebase Admin if not already initialized
-        if (getApps().length === 0) {
-          const serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_SDK || '{}');
-          initializeApp({
-            credential: cert(serviceAccount)
-          });
-        }
-        
-        const token = authHeader.split('Bearer ')[1];
-        const decodedToken = await getAuth().verifyIdToken(token);
-        userId = decodedToken.uid;
-        
-        // Check if user has premium access for AI meal generation
-        const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
-        if (!hasPremiumAccess) {
-          return NextResponse.json({
-            error: 'Premium subscription required',
-            message: 'AI meal generation is available for premium subscribers only.',
-            upgradeUrl: '/analytics',
-            feature: 'ai_meal_generation'
-          }, { status: 403 });
-        }
-        
-        // Check cache with user context
-        const cachedResult = await cacheService.getCachedMealGeneration({
-          preferences: cacheKey,
-          mealType,
-          userId
-        });
-        
-        if (cachedResult && cachedResult.meals) {
-          console.log('🎯 Cache hit - returning cached meals');
-          return NextResponse.json({
-            ...cachedResult,
-            cached: true
-          });
-        }
-        
-        // Get symptom-based meal preferences
-        console.log('🔍 Analyzing symptoms for user:', userId);
-        symptomEnhancement = await symptomMealService.createSymptomPromptEnhancement(userId);
-        
-        if (symptomEnhancement) {
-          console.log('✅ Added symptom-based optimizations to meal generation');
-        }
-      }
-    } catch (authError) {
-      console.log('ℹ️ No valid auth token:', authError);
-      // AI meal generation requires premium subscription, which requires authentication
+    if (!userId) {
       return NextResponse.json({
         error: 'Authentication required',
-        message: 'Please sign in to access AI meal generation. This feature requires a premium subscription.',
+        message: 'Please sign in to access AI meal generation.',
         upgradeUrl: '/analytics',
         feature: 'ai_meal_generation'
       }, { status: 401 });
     }
+    
+    // Check if user has premium access for AI meal generation
+    const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
+    if (!hasPremiumAccess) {
+      return NextResponse.json({
+        error: 'Premium subscription required',
+        message: 'AI meal generation is available for premium subscribers only.',
+        upgradeUrl: '/analytics',
+        feature: 'ai_meal_generation'
+      }, { status: 403 });
+    }
 
-    // Generate multiple meal options using Spoonacular with symptom enhancement
-    const meals = await spoonacularService.generateMultipleMealOptions({
+    const body = await request.json();
+    
+    // Extract values from nested preferences object or direct properties
+    const mealType = body.mealType || 'lunch';
+    const preferences = body.preferences || {};
+    const dietaryRestrictions = preferences.dietaryRestrictions || body.dietaryRestrictions || [];
+    const avoidIngredients = body.avoidIngredients || body.allergies || [];
+
+    console.log('\n=== GENERATING 2 MEAL OPTIONS WITH GROK AI ===');
+    console.log('Request params:', {
       mealType,
       dietaryRestrictions,
-      cuisineType,
-      proteinSource,
-      avoidIngredients,
-      previousMeals,
-      freeTextPrompt: (freeTextPrompt || '') + symptomEnhancement, // Add symptom enhancement
-      minProtein,
-      minFiber,
-      maxCalories,
-      maxReadyTime,
-      surpriseMe,
-      cookingMethod,
-      equipmentAvailable,
-      mealPrepOnly
+      avoidIngredients: avoidIngredients.length
     });
 
-    // Validate GLP-1 requirements for each meal
-    const validatedMeals = meals.map(meal => {
-      const validation = spoonacularService.validateGLP1Requirements(meal);
-      
-      if (!validation.valid) {
-        console.warn(`Meal "${meal.name}" does not meet GLP-1 requirements:`, validation.issues);
-        // Add warnings to the meal
-        meal.warnings = validation.issues;
-      }
-
-      return meal;
-    });
-
-    console.log(`Successfully generated ${validatedMeals.length} meal options`);
-
-    const result = { 
-      meals: validatedMeals, 
-      symptomOptimized: !!symptomEnhancement 
+    // Get symptom-based meal preferences
+    let symptomEnhancement = '';
+    try {
+      symptomEnhancement = await symptomMealService.createSymptomPromptEnhancement(userId);
+    } catch (symptomError) {
+      // If symptom service fails, continue without enhancement
+      console.error('Symptom enhancement failed:', symptomError);
+    }
+    
+    // Build meal generation parameters from request body
+    const mealParams = {
+      mealType: body.mealType,
+      dietaryRestrictions: body.dietaryRestrictions,
+      allergies: body.allergies,
+      numOptions: body.numOptions || 2,
+      maxCookingTime: body.maxCookingTime,
+      proteinTarget: body.proteinTarget,
+      fiberTarget: body.fiberTarget,
+      calorieRange: body.calorieRange,
+      creativityLevel: body.creativityLevel,
+      assemblyToRecipeRatio: body.assemblyToRecipeRatio,
+      avoidIngredients: body.allergies || [],
+      previousMeals: []
     };
     
-    // Cache successful results
-    if (validatedMeals.length > 0) {
-      await cacheService.cacheMealGeneration(
-        { preferences: cacheKey, mealType, userId },
-        result
-      );
-      console.log('💾 Cached meal generation results');
+    // Add symptom enhancement to parameters if available
+    if (symptomEnhancement) {
+      mealParams.symptomEnhancement = symptomEnhancement;
     }
     
-    return NextResponse.json(result);
+    try {
+      // Generate meals using Grok AI service
+      const meals = await grokService.generateGLP1Recipes({
+        mealType: mealParams.mealType || 'lunch',
+        dietaryRestrictions: mealParams.dietaryRestrictions || [],
+        allergies: mealParams.allergies || [],
+        numOptions: mealParams.numOptions || 2,
+        maxCookingTime: mealParams.maxCookingTime || 30,
+        proteinTarget: mealParams.proteinTarget || 20,
+        fiberTarget: mealParams.fiberTarget || 4,
+        calorieRange: mealParams.calorieRange || { min: 400, max: 600 },
+        creativityLevel: mealParams.creativityLevel || 'flavorful-twists',
+        assemblyToRecipeRatio: mealParams.assemblyToRecipeRatio || 0.6
+      });
+      
+      const duration = Date.now() - startTime;
+      
+      return NextResponse.json({
+        success: true,
+        meals: meals,
+        generationMethod: 'grok',
+        cacheStatus: 'fresh',
+        duration,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (generationError) {
+      console.error('Recipe generation failed:', generationError);
+      
+      // Try to return a helpful error message
+      const duration = Date.now() - startTime;
+      
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to generate meals',
+        details: generationError instanceof Error ? generationError.message : 'Unknown error',
+        duration,
+        timestamp: new Date().toISOString()
+      }, { status: 500 });
+    }
 
   } catch (error) {
-    console.error('Error in /api/generate-meal-options:', error);
+    const duration = Date.now() - startTime;
+    console.error(`Complete meal generation failure after ${duration}ms:`, error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
-    // Check if it's a quota/payment error (402) or API limit error
-    if (errorMessage.includes('402') || errorMessage.includes('quota') || errorMessage.includes('payment')) {
-      console.log('API quota exceeded, providing fallback meals...');
-      
-      // Return sample GLP-1 friendly meals as fallback
-      const fallbackMeals = spoonacularService.getFallbackMeals(mealType);
-      return NextResponse.json({ 
-        meals: fallbackMeals,
-        notice: 'Using sample recipes due to API limits. Consider upgrading your Spoonacular plan for fresh recipes.',
-        fallback: true
-      });
-    }
-    
-    // Return specific error information for other errors
-    const statusCode = errorMessage.includes('API key') ? 500 : 
-                      errorMessage.includes('No recipes') ? 404 : 500;
-
     return NextResponse.json(
       { 
+        success: false,
         error: 'Failed to generate meal options',
-        details: errorMessage,
+        details: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       },
-      { status: statusCode }
+      { status: 500 }
     );
   }
 }

@@ -1,4 +1,4 @@
-import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, getDocs, query, orderBy, serverTimestamp, updateDoc, where } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, updateDoc, DocumentData } from 'firebase/firestore';
 import { app } from '../firebase/config';
 
 const db = getFirestore(app);
@@ -60,7 +60,7 @@ class PantryService {
       return {
         ...data,
         lastUpdatedAt: data.lastUpdatedAt?.toDate() || new Date(),
-        items: data.items?.map((item: any) => ({
+        items: data.items?.map((item: DocumentData) => ({
           ...item,
           addedAt: item.addedAt?.toDate() || new Date(),
           lastUpdatedAt: item.lastUpdatedAt?.toDate() || new Date(),
