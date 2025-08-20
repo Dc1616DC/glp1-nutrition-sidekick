@@ -29,8 +29,18 @@ async function verifyUser(request: NextRequest): Promise<string | null> {
       return decodedToken.uid;
     } catch (error) {
       console.error('Firebase token verification failed:', error);
+      console.error('Token length:', token?.length);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
       return null;
     }
+  } else {
+    console.warn('Firebase Admin SDK not initialized - check environment variables');
+    console.warn('Environment check:', {
+      hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+      hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+      isVercel: process.env.VERCEL === '1'
+    });
   }
   
   // Fallback for development when Firebase Admin isn't configured
