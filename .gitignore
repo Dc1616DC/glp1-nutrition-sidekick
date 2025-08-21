@@ -47,3 +47,4 @@ src/scripts/serviceAccountKey.json
 ehthumbs.db
 Thumbs.db
 .vercel
+.env*.local
