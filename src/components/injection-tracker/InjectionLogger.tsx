@@ -104,7 +104,7 @@ export default function InjectionLogger({
           {/* Dose Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dose
+              Dose (as prescribed by your provider)
             </label>
             <div className="flex flex-wrap gap-2">
               {medicationInfo.doses.map((d) => (
@@ -121,6 +121,13 @@ export default function InjectionLogger({
                 </button>
               ))}
             </div>
+            {lastDose && dose !== lastDose && (
+              <div className="mt-2 bg-amber-50 border border-amber-200 rounded p-2">
+                <p className="text-xs text-amber-800">
+                  ⚠️ Dose change detected. Please ensure this change was prescribed by your healthcare provider.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Injection Site Selection */}

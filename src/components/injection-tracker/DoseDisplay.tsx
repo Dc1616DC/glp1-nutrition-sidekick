@@ -24,27 +24,22 @@ export default function DoseDisplay() {
     setPattern(injectionService.getInjectionPattern());
   };
 
-  const handleEscalateDose = () => {
+  const handleUpdateDose = (newDose: number) => {
     if (!doseSchedule) return;
     
     const medicationInfo = MEDICATION_INFO[doseSchedule.medication];
-    const currentIndex = medicationInfo.doses.indexOf(doseSchedule.dose);
+    const nextEscalation = new Date();
+    nextEscalation.setDate(nextEscalation.getDate() + 28); // 4 weeks minimum
     
-    if (currentIndex < medicationInfo.doses.length - 1) {
-      const newDose = medicationInfo.doses[currentIndex + 1];
-      const nextEscalation = new Date();
-      nextEscalation.setDate(nextEscalation.getDate() + 28); // 4 weeks minimum
-      
-      injectionService.saveDoseSchedule({
-        ...doseSchedule,
-        dose: newDose,
-        startDate: new Date(),
-        nextEscalationDate: nextEscalation
-      });
-      
-      loadData();
-      alert(`Dose escalated to ${newDose}${medicationInfo.unit}. Remember to use this dose for your next injection.`);
-    }
+    injectionService.saveDoseSchedule({
+      ...doseSchedule,
+      dose: newDose,
+      startDate: new Date(),
+      nextEscalationDate: nextEscalation
+    });
+    
+    loadData();
+    alert(`Dose updated to ${newDose}${medicationInfo.unit} as prescribed by your healthcare provider.`);
   };
 
   if (!doseSchedule) {
@@ -116,32 +111,44 @@ export default function DoseDisplay() {
         </div>
       </div>
 
-      {/* Escalation Information */}
+      {/* Dose Adjustment Information */}
       {!isMaxDose && (
-        <div className="bg-blue-50 rounded-lg p-3">
-          <h4 className="text-sm font-medium text-blue-900 mb-1">Next Dose Escalation</h4>
-          <p className="text-xs text-blue-700 mb-2">
-            You can escalate to {nextDose} {medicationInfo.unit} after 4 weeks on current dose.
-          </p>
-          {canEscalate ? (
-            <button
-              onClick={handleEscalateDose}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
-            >
-              Escalate to {nextDose} {medicationInfo.unit}
-            </button>
-          ) : (
-            <p className="text-xs text-blue-600">
-              Available on: {doseSchedule.nextEscalationDate?.toLocaleDateString()}
+        <div className="bg-amber-50 rounded-lg p-3">
+          <h4 className="text-sm font-medium text-amber-900 mb-1">📋 Dose Adjustment Guidelines</h4>
+          <div className="space-y-2">
+            <p className="text-xs text-amber-800">
+              <strong>Important:</strong> Only adjust your dose as prescribed by your healthcare provider.
             </p>
-          )}
+            <div className="bg-white rounded p-2 text-xs text-gray-700">
+              <p className="mb-1">
+                <strong>Medical guidelines recommend:</strong>
+              </p>
+              <ul className="space-y-1 ml-3">
+                <li>• Minimum 4 weeks between dose increases for tolerance assessment</li>
+                <li>• Use the lowest effective dose to minimize side effects</li>
+                <li>• Some patients achieve optimal results without reaching maximum dose</li>
+              </ul>
+            </div>
+            {doseSchedule.nextEscalationDate && (
+              <p className="text-xs text-amber-700">
+                You've been on {doseSchedule.dose}{medicationInfo.unit} for{' '}
+                {Math.floor((Date.now() - doseSchedule.startDate.getTime()) / (1000 * 60 * 60 * 24))} days
+              </p>
+            )}
+            <p className="text-xs text-amber-600 italic">
+              If your provider has prescribed a dose change, you can update it in your injection log.
+            </p>
+          </div>
         </div>
       )}
 
       {isMaxDose && (
         <div className="bg-green-50 rounded-lg p-3">
           <p className="text-sm text-green-800">
-            ✓ You're on the maximum dose for {medicationInfo.name}
+            ✓ You're on the maximum approved dose for {medicationInfo.name}
+          </p>
+          <p className="text-xs text-green-700 mt-1">
+            Continue as prescribed by your healthcare provider. Remember: the goal is the lowest effective dose for your needs.
           </p>
         </div>
       )}
