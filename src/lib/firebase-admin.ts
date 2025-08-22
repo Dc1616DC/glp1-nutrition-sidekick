@@ -27,10 +27,10 @@ function initializeFirebaseAdmin() {
         process.env.FIREBASE_PRIVATE_KEY) {
       
       const serviceAccount: ServiceAccount = {
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        // Handle escaped newlines in private key
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+        projectId: process.env.FIREBASE_PROJECT_ID.trim(),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL.trim(),
+        // Handle escaped newlines in private key and trim whitespace
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').trim()
       };
       
       return initializeApp({
@@ -51,6 +51,13 @@ function initializeFirebaseAdmin() {
     );
   } catch (error) {
     console.error('Failed to initialize Firebase Admin:', error);
+    console.error('Environment check:', {
+      hasProjectId: !!process.env.FIREBASE_PROJECT_ID,
+      hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+      hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+      projectIdLength: process.env.FIREBASE_PROJECT_ID?.length,
+      clientEmailLength: process.env.FIREBASE_CLIENT_EMAIL?.length,
+    });
     throw error;
   }
 }
