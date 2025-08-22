@@ -9,6 +9,7 @@ import NotificationPrompt from '../components/NotificationPrompt';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
 import InjectionWidget from '../components/injection-tracker/InjectionWidget';
 import DoseDisplay from '../components/injection-tracker/DoseDisplay';
+import InjectionSymptomInsights from '../components/injection-tracker/InjectionSymptomInsights';
 import { useEffect, useState } from 'react';
 import {
   getNotificationPermissionState,
@@ -289,10 +290,11 @@ export default function Dashboard() {
         {/* Injection Tracker Section */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">GLP-1 Injection Tracker</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <InjectionWidget />
             <DoseDisplay />
           </div>
+          <InjectionSymptomInsights />
         </div>
 
         {/* Weekly Tip/Intention */}
