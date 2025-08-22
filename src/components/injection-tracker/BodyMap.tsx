@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { injectionService } from '@/services/injectionService';
 import { InjectionSite } from '@/types/injection';
+import InjectionEducation from './InjectionEducation';
 
 interface BodyMapProps {
   selectedSite: string;
@@ -141,6 +142,9 @@ export default function BodyMap({ selectedSite, onSelectSite }: BodyMapProps) {
           </p>
         </div>
       )}
+
+      {/* Educational Information */}
+      <InjectionEducation />
     </div>
   );
 }
