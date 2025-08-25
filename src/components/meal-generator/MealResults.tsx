@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { GeneratedMeal } from '../../types/meal';
 import MealCard from './MealCard';
+import MealContextWarnings from './MealContextWarnings';
 
 interface MealResultsProps {
   meals: GeneratedMeal[];
@@ -88,6 +89,9 @@ export default function MealResults({
           </div>
         </div>
       </div>
+
+      {/* Injection Context Warnings */}
+      <MealContextWarnings mealType={meals[0]?.mealType} />
 
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-800">

@@ -1,6 +1,7 @@
 import { collection, query, orderBy, limit, getDocs, where, DocumentData } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { injectionService } from './injectionService';
+import { adaptiveAnalyticsService } from './adaptiveAnalyticsService';
 import { Injection } from '@/types/injection';
 
 interface SymptomLog {
@@ -51,8 +52,20 @@ export class InjectionSymptomCorrelationService {
       // Get injection data from local storage
       const injections = injectionService.getInjections();
       
-      // Get symptom data from Firestore
-      const symptoms = await this.getUserSymptoms(userId);
+      // Use adaptive analytics for more relevant data
+      const weightedSymptoms = await adaptiveAnalyticsService.getRelevantSymptomData(userId);
+      const adaptiveInsights = await adaptiveAnalyticsService.generateAdaptiveInsights(userId);
+      
+      // Convert weighted symptoms to regular format for backward compatibility
+      const symptoms = weightedSymptoms.map(ws => ({
+        id: `weighted_${Date.now()}`,
+        symptom: ws.symptom,
+        severity: ws.severity,
+        timestamp: ws.timestamp,
+        notes: '',
+        mealRelated: null,
+        userId
+      }));
       
       if (injections.length < 2 || symptoms.length < 3) {
         return this.getInsufficientDataInsights();
