@@ -169,7 +169,7 @@ class SubscriptionService {
   }
 
   /**
-   * Get user's meal generation history for analytics
+   * Get user's meal generation history
    */
   async getMealGenerationHistory(userId: string, days: number = 30): Promise<DocumentData[]> {
     try {
@@ -256,7 +256,7 @@ class SubscriptionService {
   }
 
   /**
-   * Record a meal generation in history (for analytics)
+   * Record a meal generation in history
    */
   async recordMealGeneration(_userId: string, mealData: Record<string, unknown>): Promise<void> {
     try {
@@ -269,7 +269,7 @@ class SubscriptionService {
       });
     } catch (error) {
       console.error('Error recording meal generation:', error);
-      // Don't throw - this is for analytics only
+      // Don't throw - this is for history tracking only
     }
   }
 
@@ -294,12 +294,6 @@ class SubscriptionService {
     return await this.hasPremiumAccess(userId);
   }
 
-  /**
-   * Check if user can access analytics (premium only)
-   */
-  async canAccessAnalytics(userId: string): Promise<boolean> {
-    return await this.hasPremiumAccess(userId);
-  }
 }
 
 // Export singleton instance

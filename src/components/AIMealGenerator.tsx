@@ -8,6 +8,11 @@
 
 import AIMealGeneratorRefactored from './meal-generator/AIMealGeneratorRefactored';
 
-export default function AIMealGenerator() {
-  return <AIMealGeneratorRefactored />;
+interface AIMealGeneratorProps {
+  suggestedMeal?: string | null;
+  symptom?: string | null;
+}
+
+export default function AIMealGenerator({ suggestedMeal, symptom }: AIMealGeneratorProps) {
+  return <AIMealGeneratorRefactored suggestedMeal={suggestedMeal} symptom={symptom} />;
 }

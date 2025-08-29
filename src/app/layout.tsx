@@ -13,6 +13,8 @@ import PWAStatus from "../components/PWAStatus";
 import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
 // Error boundary for graceful error handling
 import ErrorBoundary from "../components/ErrorBoundary";
+// Enhanced onboarding experience
+import EnhancedOnboardingWrapper from "../components/onboarding/EnhancedOnboardingWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,13 +75,15 @@ export default function RootLayout({
         <AuthProvider>
           <ServiceWorkerRegistration />
           <PWAStatus />
-          <Navbar />
-          <main className="mx-auto max-w-7xl p-4">
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
-          </main>
-          <PWAInstallPrompt />
+          <EnhancedOnboardingWrapper>
+            <Navbar />
+            <main className="mx-auto max-w-7xl p-4">
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
+            </main>
+            <PWAInstallPrompt />
+          </EnhancedOnboardingWrapper>
         </AuthProvider>
       </body>
     </html>

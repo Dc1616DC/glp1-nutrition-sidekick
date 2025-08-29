@@ -2,6 +2,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 /**
  * ---------------------------------------------------------------------------
@@ -52,8 +53,20 @@ const firebaseConfig = {
 // We add a check to see if the app is already initialized to prevent errors in Next.js's hot-reloading environment.
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firebase Authentication and Firestore
+// Initialize Firebase Authentication, Firestore, and Functions
 const auth = getAuth(app);
 const db = getFirestore(app);
+const functions = getFunctions(app);
 
-export { app, auth, db };
+// Connect to Firebase Functions emulator in development
+if (process.env.NODE_ENV === 'development') {
+  try {
+    connectFunctionsEmulator(functions, 'localhost', 5001);
+    console.log('🔧 Connected to Firebase Functions emulator');
+  } catch (error) {
+    // Emulator already connected or not available
+    console.log('Firebase Functions emulator connection status:', error);
+  }
+}
+
+export { app, auth, db, functions };

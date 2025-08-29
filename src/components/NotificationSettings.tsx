@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { pushNotificationService } from '../services/pushNotificationService';
+import { serverNotificationService } from '../services/serverNotificationService';
 
 interface NotificationPreferences {
   userId: string;
@@ -40,29 +40,29 @@ export default function NotificationSettings() {
     }
   }, [user]);
 
-  const loadPreferences = () => {
+  const loadPreferences = async () => {
     if (!user) return;
     
-    const prefs = pushNotificationService.getNotificationPreferences(user.uid);
+    const prefs = await serverNotificationService.getNotificationPreferences(user.uid);
     setPreferences(prefs);
     setIsLoading(false);
   };
 
   const checkPermissionStatus = () => {
-    const status = pushNotificationService.getPermissionStatus();
+    const status = serverNotificationService.getPermissionStatus();
     setPermissionStatus(status);
   };
 
   const handlePermissionRequest = async () => {
     try {
-      const permission = await pushNotificationService.requestPermission();
+      const permission = await serverNotificationService.requestPermission();
       setPermissionStatus(permission);
       
       if (permission === 'granted') {
         // Initialize the service and set up default reminders
-        await pushNotificationService.initialize();
+        await serverNotificationService.initialize();
         if (preferences?.mealReminders) {
-          await pushNotificationService.setupMealReminders(user!.uid);
+          await serverNotificationService.setupMealReminders(user!.uid);
         }
       }
     } catch (error) {
@@ -76,16 +76,9 @@ export default function NotificationSettings() {
     setIsSaving(true);
     
     try {
+      await serverNotificationService.updateNotificationPreferences(user.uid, updates);
       const updatedPrefs = { ...preferences, ...updates };
-      pushNotificationService.updateNotificationPreferences(user.uid, updatedPrefs);
       setPreferences(updatedPrefs);
-      
-      // Re-setup meal reminders if they were changed
-      if (updates.mealReminders !== undefined || updates.customMealTimes) {
-        if (updatedPrefs.mealReminders && permissionStatus === 'granted') {
-          await pushNotificationService.setupMealReminders(user.uid);
-        }
-      }
       
       console.log('✅ Notification preferences updated');
     } catch (error) {
@@ -132,7 +125,7 @@ export default function NotificationSettings() {
       return;
     }
     
-    await pushNotificationService.sendNotification({
+    await serverNotificationService.sendNotification({
       title: '🎉 Test Notification',
       body: 'Great! Your notifications are working perfectly.',
       tag: 'test_notification',

@@ -18,9 +18,11 @@ import { mealLoggingService } from '../services/mealLoggingService';
 import { mealCommitmentService } from '../services/mealCommitmentService';
 import { subscriptionService } from '../services/subscriptionService';
 import { getWeeklyTip } from '../data/weeklyTips';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
+  const { profile, getMedicationInfo, isNewUser, isStruggling, hasNauseaConcern } = useUserProfile();
   const [showNutritionOnboarding, setShowNutritionOnboarding] = useState(false);
   const [showEveningToolkit, setShowEveningToolkit] = useState(false);
   const [showFollowUp, setShowFollowUp] = useState(false);
@@ -114,14 +116,41 @@ export default function Dashboard() {
       badge: 'FREE'
     });
     
-    // Always show meal generator as primary action
-    actions.push({
-      href: '/meal-generator',
-      icon: '🤖',
-      title: 'Generate Today\'s Meal',
-      description: 'Get AI-powered meal suggestions',
-      primary: true
-    });
+    // Personalize primary action based on profile concerns
+    if (profile && hasNauseaConcern()) {
+      actions.push({
+        href: '/meal-generator',
+        icon: '🍵',
+        title: 'Gentle Meal Ideas',
+        description: 'Nausea-friendly recipes for you',
+        primary: true
+      });
+    } else if (profile && profile.primaryConcerns.includes('constipation')) {
+      actions.push({
+        href: '/meal-generator',
+        icon: '🥦',
+        title: 'High-Fiber Meals',
+        description: 'Fiber-rich options to help digestion',
+        primary: true
+      });
+    } else if (profile && profile.primaryConcerns.includes('fatigue')) {
+      actions.push({
+        href: '/meal-generator',
+        icon: '⚡',
+        title: 'Energy-Boosting Meals',
+        description: 'Iron & protein-rich recipes',
+        primary: true
+      });
+    } else {
+      // Default meal generator
+      actions.push({
+        href: '/meal-generator',
+        icon: '🤖',
+        title: 'Generate Today\'s Meal',
+        description: 'Get AI-powered meal suggestions',
+        primary: true
+      });
+    }
 
     // Add contextual meal logging if user has commitments
     if (commitments && commitments.committedSlots.length > 0) {
@@ -246,6 +275,50 @@ export default function Dashboard() {
           </p>
         </div>
 
+        {/* Personalized Welcome Based on Profile */}
+        {profile && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+              <div className="flex items-start">
+                <div className="text-2xl mr-4">
+                  {isNewUser() ? '🌟' : isStruggling() ? '🤝' : '🎯'}
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                    {getMedicationInfo()?.name} Companion Mode Active
+                  </h3>
+                  <div className="text-gray-700 space-y-2">
+                    {isNewUser() && (
+                      <p>Welcome to your {getMedicationInfo()?.name} journey! We'll help you navigate the first few weeks with confidence.</p>
+                    )}
+                    {isStruggling() && (
+                      <p>We're here to help you succeed with {getMedicationInfo()?.name}. Let's work together to minimize those side effects.</p>
+                    )}
+                    {profile.experience === 'experienced' && (
+                      <p>Great to see you're doing well with {getMedicationInfo()?.name}! Let's optimize your results even further.</p>
+                    )}
+                    
+                    {/* Show personalized tips based on concerns */}
+                    {hasNauseaConcern() && (
+                      <div className="mt-3 p-3 bg-white rounded-lg border border-blue-100">
+                        <span className="text-sm font-medium text-blue-800">💡 Nausea Tip:</span>
+                        <span className="text-sm text-gray-700 ml-2">Try ginger tea or room-temperature meals today. Your meal suggestions will prioritize gentle options.</span>
+                      </div>
+                    )}
+                    
+                    {/* Medication-specific reminder */}
+                    {getMedicationInfo()?.frequency === 'weekly' && (
+                      <div className="text-sm text-gray-600 mt-2">
+                        📅 Remember: {getMedicationInfo()?.name} is taken {getMedicationInfo()?.frequency}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
@@ -337,22 +410,6 @@ export default function Dashboard() {
             </Link>
             
             <Link
-              href={hasPremiumAccess ? "/analytics" : "/analytics"}
-              className="bg-white rounded-lg p-6 hover:shadow-md transition-all border border-gray-200 group relative"
-            >
-              <div className="text-3xl mb-3">📊</div>
-              <h3 className="font-semibold text-gray-900 mb-1 flex items-center">
-                Analytics
-                {!hasPremiumAccess && (
-                  <span className="ml-2 px-1.5 py-0.5 text-xs bg-gradient-to-r from-yellow-400 to-orange-400 text-white rounded-full font-bold">
-                    PRO
-                  </span>
-                )}
-              </h3>
-              <p className="text-sm text-gray-600">View insights</p>
-            </Link>
-            
-            <Link
               href="/calculator"
               className="bg-white rounded-lg p-6 hover:shadow-md transition-all border border-gray-200 group"
             >
@@ -363,27 +420,11 @@ export default function Dashboard() {
             
             <Link
               href="/settings"
-              className={`rounded-lg p-6 transition-all border group ${
-                isEvening 
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-300 shadow-lg hover:shadow-xl' 
-                  : 'bg-white border-gray-200 hover:shadow-md'
-              }`}
+              className="bg-white rounded-lg p-6 hover:shadow-md transition-all border border-gray-200 group"
             >
-              <div className={`text-3xl mb-3 ${
-                isEvening ? 'animate-pulse' : ''
-              }`}>
-                🌙
-              </div>
-              <h3 className={`font-semibold mb-1 ${
-                isEvening ? 'text-white' : 'text-gray-900'
-              }`}>
-                Evening Toolkit {isEvening && '✨'}
-              </h3>
-              <p className={`text-sm ${
-                isEvening ? 'text-purple-100' : 'text-gray-600'
-              }`}>
-                {isEvening ? 'Perfect timing!' : 'Manage cravings'}
-              </p>
+              <div className="text-3xl mb-3">🌙</div>
+              <h3 className="font-semibold text-gray-900 mb-1">Evening Toolkit</h3>
+              <p className="text-sm text-gray-600">Manage cravings & patterns</p>
             </Link>
           </div>
         </div>

@@ -21,7 +21,24 @@ import { clientNutritionService } from '../../services/clientNutritionService';
 import { savedMealsService } from '../../services/savedMealsService';
 import { shoppingListService } from '../../services/shoppingListService';
 
-export default function AIMealGeneratorRefactored() {
+// Constants for symptom labels
+const SYMPTOM_LABELS: { [key: string]: { label: string } } = {
+  nausea: { label: 'Nausea' },
+  constipation: { label: 'Constipation' },
+  fatigue: { label: 'Fatigue' },
+  fullness: { label: 'Early Fullness' },
+  cravings: { label: 'Cravings' },
+  heartburn: { label: 'Heartburn' },
+  bloating: { label: 'Bloating' },
+  dizziness: { label: 'Dizziness' },
+};
+
+interface AIMealGeneratorRefactoredProps {
+  suggestedMeal?: string | null;
+  symptom?: string | null;
+}
+
+export default function AIMealGeneratorRefactored({ suggestedMeal, symptom }: AIMealGeneratorRefactoredProps) {
   const { user } = useAuth();
   const { isOnline } = useOnlineStatus();
   const router = useRouter();
@@ -56,6 +73,90 @@ export default function AIMealGeneratorRefactored() {
   }>({ type: null });
   const [showInsightModal, setShowInsightModal] = useState<string | null>(null);
   const [showEnhancedEducation, setShowEnhancedEducation] = useState<{ show: boolean; category?: string }>({ show: false });
+  const [hasGeneratedSymptomMeal, setHasGeneratedSymptomMeal] = useState(false);
+
+  // Handle suggested meal from symptom recommendations
+  useEffect(() => {
+    if (suggestedMeal && user && isOnline && !hasGeneratedSymptomMeal) {
+      // Auto-generate the suggested meal (only once)
+      generateSymptomBasedMeal();
+      setHasGeneratedSymptomMeal(true);
+    }
+  }, [suggestedMeal, user, isOnline, hasGeneratedSymptomMeal]);
+
+  // Generate symptom-based meal
+  const generateSymptomBasedMeal = async () => {
+    if (!suggestedMeal) return;
+    
+    setIsGenerating(true);
+    
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (user) {
+        try {
+          const token = await user.getIdToken();
+          headers['Authorization'] = `Bearer ${token}`;
+        } catch (tokenError) {
+          console.warn('Failed to get ID token, using UID as fallback:', tokenError);
+          headers['Authorization'] = `Bearer ${user.uid}`;
+        }
+      }
+      
+      // Create preferences optimized for the symptom
+      const symptomOptimizedPrefs = {
+        ...preferences,
+        specificMealRequest: suggestedMeal,
+        symptomOptimization: symptom || undefined,
+        creativityLevel: 'simple' as const
+      };
+      
+      const response = await fetch('/api/generate-meal-options-new', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          preferences: symptomOptimizedPrefs,
+          previousMeals: [],
+          symptomOptimized: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate meal');
+      }
+
+      const data = await response.json();
+      
+      if (data.meals && data.meals.length > 0) {
+        setGeneratedMeals(data.meals);
+        setSelectedMealIndex(0);
+        setSymptomOptimized(true);
+        
+        // Access nutrition data from the correct property
+        const firstMeal = data.meals[0];
+        if (firstMeal.nutritionTotals) {
+          setShowNudge({
+            type: null,
+            mealData: {
+              protein: firstMeal.nutritionTotals.protein || 0,
+              fiber: firstMeal.nutritionTotals.fiber || 0,
+              calories: firstMeal.nutritionTotals.calories || 0
+            }
+          });
+        }
+        
+      } else {
+        console.warn('No meals returned from API:', data);
+      }
+    } catch (error) {
+      console.error('Error generating symptom-based meal:', error);
+      alert('Failed to generate the suggested meal. Please try again.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Clear meal history
   const clearHistory = () => {
@@ -298,6 +399,45 @@ export default function AIMealGeneratorRefactored() {
         ingredients
       );
 
+      // Also save the meal to cookbook automatically
+      if (!savedMealIds.includes(meal.id)) {
+        try {
+          const saveRequest = {
+            meal: {
+              title: meal.name || meal.title || 'Untitled Meal',
+              description: meal.description || '',
+              ingredients: Array.isArray(meal.ingredients) 
+                ? meal.ingredients.map(ing => typeof ing === 'string' ? ing : `${ing.amount || ''} ${ing.unit || ''} ${ing.name || ''}`.trim())
+                : [],
+              instructions: meal.instructions || [],
+              nutritionTotals: meal.nutrition || meal.nutritionTotals || {
+                protein: 0,
+                fiber: 0,
+                calories: 0,
+                carbs: 0,
+                fat: 0,
+                sodium: 0
+              },
+              cookingTime: meal.cookingTime || 0,
+              servings: meal.servings || 1,
+              difficulty: meal.difficulty || 'easy',
+              mealType: meal.mealType || 'lunch',
+              tags: meal.tags || [],
+              glp1Notes: meal.glp1Notes || '',
+              createdAt: new Date()
+            }
+          };
+          
+          const cleanedSaveRequest = cleanUndefinedValues(saveRequest);
+          const savedMeal = await savedMealsService.saveMeal(user.uid, cleanedSaveRequest);
+          setSavedMealIds(prev => [...prev, savedMeal.id]);
+          console.log(`✅ Auto-saved "${savedMeal.title}" to cookbook when creating shopping list`);
+        } catch (saveError) {
+          console.error('Error auto-saving meal to cookbook:', saveError);
+          // Don't block the shopping list creation if cookbook save fails
+        }
+      }
+
       // Redirect to the shopping list page
       router.push('/shopping-list');
       
@@ -365,6 +505,31 @@ export default function AIMealGeneratorRefactored() {
           Generate personalized, GLP-1 friendly meals with AI
         </p>
       </div>
+
+      {/* Symptom-based suggestion banner */}
+      {suggestedMeal && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎯</span>
+              <div>
+                <h3 className="font-semibold text-blue-900">
+                  Generating symptom-friendly meal
+                </h3>
+                <p className="text-sm text-blue-700">
+                  Creating "<strong>{suggestedMeal}</strong>" optimized for {symptom ? SYMPTOM_LABELS[symptom]?.label || symptom : 'your symptoms'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => window.history.back()}
+              className="text-sm text-blue-600 hover:text-blue-800 underline"
+            >
+              Back to suggestions
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Offline Warning */}
       {!isOnline && (

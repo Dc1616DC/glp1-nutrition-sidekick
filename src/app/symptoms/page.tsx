@@ -175,19 +175,10 @@ export default function SymptomsPage() {
                 <li>• Meal correlation analysis</li>
               </ul>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <h3 className="font-semibold mb-2">📊 Plus Analytics:</h3>
-              <ul className="text-sm space-y-1">
-                <li>• Advanced progress insights</li>
-                <li>• Predictive symptom modeling</li>
-                <li>• Healthcare provider reports</li>
-                <li>• Personalized recommendations</li>
-              </ul>
-            </div>
           </div>
           
           <button 
-            onClick={() => router.push('/analytics')}
+            onClick={() => router.push('/pricing')}
             className="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
           >
             Upgrade to Premium - $9.99/mo

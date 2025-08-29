@@ -61,8 +61,7 @@ export default function Navbar() {
         { href: '/meals', label: 'Recipe Library' },
         { href: '/meal-generator', label: 'AI Meal Generator' },
         { href: '/cookbook', label: 'My Cookbook' },
-        { href: '/shopping-list', label: 'Shopping Lists' },
-        { href: '/pantry', label: 'Pantry' }
+        { href: '/shopping-list', label: 'Shopping Lists' }
       ]
     },
     {
@@ -75,14 +74,6 @@ export default function Navbar() {
         { href: '/symptoms', label: 'Symptom Tracker' },
         { href: '/reminders', label: 'Meal Reminders' }
       ]
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: '📊',
-      href: '/analytics',
-      premium: true,
-      subItems: [] // Analytics is a single page
     }
   ];
 

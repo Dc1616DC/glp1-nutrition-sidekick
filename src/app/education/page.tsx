@@ -352,7 +352,7 @@ export default function EducationPage() {
           </div>
           
           <button 
-            onClick={() => router.push('/analytics')}
+            onClick={() => router.push('/pricing')}
             className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
           >
             Upgrade to Premium - $9.99/mo

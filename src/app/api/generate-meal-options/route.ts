@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: 'Authentication required',
         message: 'Please sign in to access AI meal generation.',
-        upgradeUrl: '/analytics',
+        upgradeUrl: '/pricing',
         feature: 'ai_meal_generation'
       }, { status: 401 });
     }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         error: 'Premium subscription required',
         message: 'AI meal generation is available for premium subscribers only.',
-        upgradeUrl: '/analytics',
+        upgradeUrl: '/pricing',
         feature: 'ai_meal_generation'
       }, { status: 403 });
     }

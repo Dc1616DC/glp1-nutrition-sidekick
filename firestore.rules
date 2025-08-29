@@ -137,6 +137,27 @@ service cloud.firestore {
       allow delete: if isOwner(userId);
     }
     
+    // Notification preferences - users can only access their own preferences (userId is document ID)
+    match /notificationPreferences/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isOwner(userId);
+    }
+    
+    // Scheduled notifications - users can only read their own notifications, Functions can write
+    match /scheduledNotifications/{notificationId} {
+      allow read: if isSignedIn() && 
+                     (resource == null || resource.data.userId == request.auth.uid);
+      allow create: if false; // Only Firebase Functions can create
+      allow update: if isSignedIn() && 
+                      resource.data.userId == request.auth.uid &&
+                      // Only allow deactivating notifications (setting isActive to false)
+                      request.resource.data.keys().hasOnly(['isActive']) &&
+                      request.resource.data.isActive == false;
+      allow delete: if false; // Use update to deactivate instead
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

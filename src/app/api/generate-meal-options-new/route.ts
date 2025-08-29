@@ -75,7 +75,7 @@ async function handlePOST(request: NextRequest) {
       return NextResponse.json({
         error: 'Premium subscription required',
         message: 'AI meal generation is available for premium subscribers only.',
-        upgradeUrl: '/analytics',
+        upgradeUrl: '/pricing',
         feature: 'ai_meal_generation'
       }, { status: 403 });
     }
@@ -90,22 +90,27 @@ async function handlePOST(request: NextRequest) {
     }
     
     const body = await request.json();
+    console.log('🔍 API Request body:', JSON.stringify(body, null, 2)); // Debug log
     
-    // The body itself contains the preferences directly
+    // Handle both direct preferences and nested preferences
+    const prefs = body.preferences || body;
     const preferences = {
-      mealType: body.mealType,
-      dietaryRestrictions: body.dietaryRestrictions,
-      allergies: body.allergies,
-      numOptions: body.numOptions || 2,
-      maxCookingTime: body.maxCookingTime,
-      proteinTarget: body.proteinTarget,
-      fiberTarget: body.fiberTarget,
-      calorieRange: body.calorieRange,
-      creativityLevel: body.creativityLevel,
-      assemblyToRecipeRatio: body.assemblyToRecipeRatio,
-      avoidIngredients: body.allergies || [],
-      previousMeals: []
+      mealType: prefs.mealType,
+      dietaryRestrictions: prefs.dietaryRestrictions,
+      allergies: prefs.allergies,
+      numOptions: prefs.numOptions || 2,
+      maxCookingTime: prefs.maxCookingTime,
+      proteinTarget: prefs.proteinTarget,
+      fiberTarget: prefs.fiberTarget,
+      calorieRange: prefs.calorieRange,
+      creativityLevel: prefs.creativityLevel,
+      assemblyToRecipeRatio: prefs.assemblyToRecipeRatio,
+      avoidIngredients: prefs.allergies || [],
+      previousMeals: [],
+      specificMealRequest: prefs.specificMealRequest
     };
+    
+    console.log('🎯 Extracted specificMealRequest:', preferences.specificMealRequest); // Debug log
     
     // Add symptom enhancement to preferences if available
     if (symptomEnhancement) {
@@ -124,7 +129,8 @@ async function handlePOST(request: NextRequest) {
         fiberTarget: preferences.fiberTarget || 4,
         calorieRange: preferences.calorieRange || { min: 400, max: 600 },
         creativityLevel: preferences.creativityLevel || 'flavorful-twists',
-        assemblyToRecipeRatio: preferences.assemblyToRecipeRatio || 0.6
+        assemblyToRecipeRatio: preferences.assemblyToRecipeRatio || 0.6,
+        specificMeal: preferences.specificMealRequest
       });
       
       const duration = Date.now() - startTime;

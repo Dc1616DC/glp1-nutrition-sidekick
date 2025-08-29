@@ -121,12 +121,23 @@ export default function SymptomMealSuggestions() {
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {mealList.map((meal, index) => (
-                <div 
+                <Link
                   key={index}
-                  className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700"
+                  href={`/meal-generator?meal=${encodeURIComponent(meal)}&symptom=${encodeURIComponent(symptom)}`}
+                  className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 border border-transparent transition-all cursor-pointer group"
                 >
-                  {meal}
-                </div>
+                  <div className="flex items-center justify-between">
+                    <span>{meal}</span>
+                    <svg 
+                      className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>

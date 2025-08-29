@@ -3,17 +3,36 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { signIn } from '../../firebase/auth';
+import { signIn, sendPasswordReset } from '../../firebase/auth';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const router = useRouter();
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    
+    setError(null);
+    const result = await sendPasswordReset(email);
+    
+    if (result.error) {
+      setError('Failed to send reset email. Please check your email address.');
+    } else {
+      setResetEmailSent(true);
+      setError(null);
+    }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null); // Clear previous errors before a new attempt
+    setResetEmailSent(false);
 
     const result = await signIn(email, password);
 
@@ -23,10 +42,14 @@ export default function SignInPage() {
         case 'auth/user-not-found':
         case 'auth/wrong-password':
         case 'auth/invalid-credential':
-          setError('Invalid email or password. Please try again.');
+        case 'auth/invalid-login-credentials':
+          setError('Invalid email or password. Please check your credentials and try again.');
           break;
         case 'auth/invalid-email':
           setError('Please enter a valid email address.');
+          break;
+        case 'auth/too-many-requests':
+          setError('Too many failed attempts. Please try again later or reset your password.');
           break;
         default:
           setError('An unexpected error occurred. Please try again later.');
@@ -86,6 +109,22 @@ export default function SignInPage() {
           {error && (
             <p className="text-sm text-center text-red-600">{error}</p>
           )}
+
+          {resetEmailSent && (
+            <p className="text-sm text-center text-green-600">
+              Password reset email sent! Check your inbox.
+            </p>
+          )}
+
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              className="text-sm text-blue-600 hover:text-blue-500"
+            >
+              Forgot password?
+            </button>
+          </div>
 
           <div>
             <button

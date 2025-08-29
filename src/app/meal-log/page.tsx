@@ -202,19 +202,10 @@ export default function MealLogPage() {
                 <li>• Optional meal names & notes</li>
               </ul>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <h3 className="font-semibold mb-2">📊 Smart Analytics:</h3>
-              <ul className="text-sm space-y-1">
-                <li>• Protein intake consistency</li>
-                <li>• Vegetable consumption patterns</li>
-                <li>• Daily logging streaks</li>
-                <li>• Weekly nutrition trends</li>
-              </ul>
-            </div>
           </div>
           
           <button 
-            onClick={() => router.push('/analytics')}
+            onClick={() => router.push('/pricing')}
             className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
           >
             Upgrade to Premium - $9.99/mo
