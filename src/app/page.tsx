@@ -42,9 +42,20 @@ export default function Dashboard() {
     // Check notification permissions
     getNotificationPermissionState();
     
-    // Show nutrition onboarding for new users
+    // Handle new user onboarding flow
     if (user && !loading) {
       const hasSeenOnboarding = localStorage.getItem('nutritionOnboardingSeen');
+      const hasCompletedCalculator = localStorage.getItem('calculatorComplete');
+      
+      // If user hasn't completed the basic setup, redirect to getting started
+      if (!hasCompletedCalculator && !hasSeenOnboarding) {
+        setTimeout(() => {
+          window.location.href = '/getting-started';
+        }, 1000);
+        return;
+      }
+      
+      // Show nutrition onboarding modal for returning users who haven't seen it
       if (!hasSeenOnboarding) {
         setTimeout(() => setShowNutritionOnboarding(true), 1500);
       } else {

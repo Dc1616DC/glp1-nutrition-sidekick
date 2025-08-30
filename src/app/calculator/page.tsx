@@ -92,6 +92,9 @@ export default function CalculatorPage() {
             high: Math.round(proteinHigh)
           }
         });
+        
+        // Mark calculator as completed for onboarding flow
+        localStorage.setItem('calculatorComplete', 'true');
       } catch (err) {
         console.error('Failed to save calculator results:', err);
       }
@@ -145,30 +148,56 @@ export default function CalculatorPage() {
           <p><strong>Target Calories:</strong> {results.targetCalories} kcal/day</p>
           <p><strong>Protein Goal:</strong> {results.proteinRange}</p>
           
-          {/* Nutrition tips highlight */}
-          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
-              💡 <strong>Ready to put these numbers to work?</strong> Check out our{' '}
-              <Link href="/meal-generator" className="underline hover:text-blue-900 font-medium">
-                10 Essential Nutrition Tips
-              </Link>{' '}
-              to make the most of your GLP-1 journey and hit your protein goals with confidence.
-            </p>
+          {/* Next Steps */}
+          <div className="mt-6 space-y-4">
+            {user ? (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/getting-started"
+                  className="flex-1 bg-blue-600 text-white text-center py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Next: Learn GLP-1 Nutrition Basics →
+                </Link>
+                <Link
+                  href="/"
+                  className="flex-1 border border-gray-300 text-gray-700 text-center py-3 px-6 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Go to Dashboard
+                </Link>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-4">
+                  Want to save your results and continue your GLP-1 journey?
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link
+                    href="/signup"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    Sign Up to Continue
+                  </Link>
+                  <Link
+                    href="/signin"
+                    className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                </div>
+              </div>
+            )}
+            
+            {/* Nutrition tips highlight */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Ready to put these numbers to work?</strong> Check out our{' '}
+                <Link href="/education" className="underline hover:text-blue-900 font-medium">
+                  GLP-1 Nutrition Education
+                </Link>{' '}
+                to make the most of your journey and hit your protein goals with confidence.
+              </p>
+            </div>
           </div>
-          
-          {!user && (
-            <p className="pt-2 text-sm text-center text-gray-600">
-              Want to save your results?{' '}
-              <Link href="/signup" className="text-blue-600 font-medium hover:underline">
-                Sign up
-              </Link>{' '}
-              or{' '}
-              <Link href="/signin" className="text-blue-600 font-medium hover:underline">
-                sign in
-              </Link>{' '}
-              to store them in your account.
-            </p>
-          )}
         </div>
       )}
     </div>
