@@ -44,7 +44,14 @@ export default function AccountPage() {
       return;
     }
 
-    // 3. If there IS a user, fetch their profile data from Firestore
+    // 3. If user is new (hasn't completed onboarding), redirect to getting-started
+    const hasCompletedCalculator = localStorage.getItem('calculatorComplete');
+    if (!hasCompletedCalculator) {
+      router.push('/getting-started');
+      return;
+    }
+
+    // 4. If there IS a user who has completed onboarding, fetch their profile data from Firestore
     const fetchProfile = async () => {
       try {
         const userProfile = await getUserProfile(user.uid);

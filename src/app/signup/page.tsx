@@ -47,8 +47,8 @@ export default function SignUpPage() {
       // --- Firebase Step 2: Create user profile in Firestore ---
       try {
         await createUserProfile(result.user.uid, { email: result.user.email! });
-        // On successful sign-up and profile creation, redirect to the account page
-        router.push('/account');
+        // On successful sign-up and profile creation, redirect to getting started
+        router.push('/getting-started');
       } catch (profileError) {
         setError('Could not create user profile. Please contact support.');
         console.error('Profile creation error:', profileError);

@@ -56,8 +56,13 @@ export default function SignInPage() {
           console.error('Sign-in error:', result.error); // Log the actual error for debugging
       }
     } else {
-      // On successful sign-in, redirect the user to their account page
-      router.push('/account');
+      // Check if user needs onboarding, otherwise go to dashboard
+      const hasCompletedCalculator = localStorage.getItem('calculatorComplete');
+      if (!hasCompletedCalculator) {
+        router.push('/getting-started');
+      } else {
+        router.push('/');
+      }
     }
   };
 
