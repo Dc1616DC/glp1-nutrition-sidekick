@@ -95,14 +95,14 @@ export default function GettingStarted() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="bg-gray-50 py-4 sm:py-8 pb-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-6 sm:mb-10">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
             🎯 Getting Started
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-6">
+          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-4 sm:mb-6">
             Let's set up your personalized GLP-1 nutrition plan in just a few minutes
           </p>
           
@@ -122,7 +122,7 @@ export default function GettingStarted() {
         </div>
 
         {/* Onboarding Steps */}
-        <div className="space-y-6 mb-10">
+        <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-10">
           {onboardingSteps.map((step, index) => (
             <div
               key={step.id}
@@ -136,17 +136,17 @@ export default function GettingStarted() {
             >
               {step.href !== '#' ? (
                 <Link href={step.href}>
-                  <div className="p-8">
+                  <div className="p-4 sm:p-6 lg:p-8">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center mb-4">
-                          <div className={`text-4xl mr-4 ${
+                        <div className="flex items-center mb-3 sm:mb-4">
+                          <div className={`text-3xl sm:text-4xl mr-3 sm:mr-4 ${
                             step.primary && !step.completed ? 'animate-pulse' : ''
                           }`}>
                             {step.icon}
                           </div>
                           <div>
-                            <h2 className={`text-2xl font-bold mb-2 ${
+                            <h2 className={`text-xl sm:text-2xl font-bold mb-1 sm:mb-2 ${
                               step.primary && !step.completed ? 'text-white' : 
                               step.completed ? 'text-green-800' : 'text-gray-900'
                             }`}>
@@ -168,7 +168,7 @@ export default function GettingStarted() {
                           </div>
                         </div>
                         
-                        <p className={`mb-4 text-lg ${
+                        <p className={`mb-3 sm:mb-4 text-base sm:text-lg ${
                           step.primary && !step.completed ? 'text-blue-100' : 
                           step.completed ? 'text-green-700' : 'text-gray-600'
                         }`}>
@@ -189,7 +189,7 @@ export default function GettingStarted() {
                   </div>
                 </Link>
               ) : (
-                <div className="p-8 cursor-pointer" onClick={step.onClick}>
+                <div className="p-4 sm:p-6 lg:p-8 cursor-pointer" onClick={step.onClick}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center mb-4">
@@ -282,8 +282,8 @@ export default function GettingStarted() {
 
         {/* Medication Form Modal */}
         {showMedicationForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl max-w-md w-full p-6">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl max-w-md w-full p-4 sm:p-6 my-8 max-h-[90vh] overflow-y-auto">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">
                 Tell Us About Your GLP-1 Journey
               </h3>
