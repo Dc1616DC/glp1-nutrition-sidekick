@@ -223,6 +223,7 @@ export default function EducationPage() {
   const router = useRouter();
   const [hasPremiumAccess, setHasPremiumAccess] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasCompletedEducation, setHasCompletedEducation] = useState(false);
 
   // We use state to keep track of which article is currently expanded.
   // We initialize it with the title of the first article so it's open by default.
@@ -234,6 +235,10 @@ export default function EducationPage() {
   const [activeTab, setActiveTab] = useState<'articles' | 'insights'>('insights');
 
   useEffect(() => {
+    // Check if education has been completed
+    const educationSeen = localStorage.getItem('educationSeen');
+    setHasCompletedEducation(!!educationSeen);
+
     const checkPremiumAccess = async () => {
       if (authLoading) return;
       
@@ -256,6 +261,20 @@ export default function EducationPage() {
 
     checkPremiumAccess();
   }, [user, authLoading]);
+
+  const markEducationComplete = () => {
+    localStorage.setItem('educationSeen', 'true');
+    setHasCompletedEducation(true);
+    // Redirect back to getting-started to continue onboarding flow
+    router.push('/getting-started');
+  };
+
+  const skipEducation = () => {
+    localStorage.setItem('educationSeen', 'true');
+    setHasCompletedEducation(true);
+    // Redirect back to getting-started to continue onboarding flow
+    router.push('/getting-started');
+  };
 
   // This function handles the click event on an article title.
   const handleToggle = (title: string) => {
@@ -358,6 +377,32 @@ export default function EducationPage() {
             Upgrade to Premium - $9.99/mo
           </button>
           <p className="text-xs text-blue-200 mt-2">7-day free trial • Cancel anytime</p>
+        </div>
+      )}
+
+      {/* Onboarding Completion Buttons */}
+      {!hasCompletedEducation && (
+        <div className="mt-8 bg-white rounded-lg shadow-lg p-6 border-t-4 border-green-500">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Ready to Continue?</h3>
+            <p className="text-gray-600 mb-6">
+              You've learned the key GLP-1 nutrition principles. Ready to complete your setup?
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={markEducationComplete}
+                className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+              >
+                ✓ Mark Complete & Continue
+              </button>
+              <button
+                onClick={skipEducation}
+                className="border border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Skip for Now
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

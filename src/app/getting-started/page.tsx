@@ -32,8 +32,9 @@ export default function GettingStarted() {
     setHasCompletedCalculator(!!calculatorComplete);
     setHasSeenEducation(!!educationSeen);
     
-    // Show medication form if no profile exists
-    if (!profile) {
+    // Show medication form only if no profile exists AND calculator isn't complete
+    // This prevents showing medication form after calculator completion
+    if (!profile && !calculatorComplete) {
       setShowMedicationForm(true);
     }
   }, [user, router]);

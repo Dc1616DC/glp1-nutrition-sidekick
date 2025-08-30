@@ -39,13 +39,6 @@ export default function MealsHub() {
       description: 'Manage your grocery lists and meal ingredients',
       action: 'View Lists'
     },
-    {
-      href: '/pantry',
-      icon: '🥫',
-      title: 'Pantry',
-      description: 'Track what ingredients you have at home',
-      action: 'Manage Pantry'
-    }
   ];
 
   return (
