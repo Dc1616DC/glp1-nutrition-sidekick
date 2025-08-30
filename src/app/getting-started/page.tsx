@@ -19,6 +19,17 @@ export default function GettingStarted() {
     primaryConcerns: [] as string[]
   });
 
+  // Pre-populate form with existing profile data
+  useEffect(() => {
+    if (profile) {
+      setMedicationForm({
+        medication: profile.medication || '',
+        experience: profile.experience || 'new',
+        primaryConcerns: profile.primaryConcerns || []
+      });
+    }
+  }, [profile]);
+
   useEffect(() => {
     if (!user) {
       router.push('/signin?redirect=getting-started');

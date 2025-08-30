@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 import { updateUserProfile } from '../../firebase/db';
@@ -18,6 +18,21 @@ export default function CalculatorPage() {
 
   const [results, setResults] = useState<any | null>(null);
   const [showCalorieWarning, setShowCalorieWarning] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Load saved calculator data on mount
+  useEffect(() => {
+    const savedCalculatorData = localStorage.getItem('calculatorData');
+    const savedResults = localStorage.getItem('calculatorResults');
+    
+    if (savedCalculatorData) {
+      setForm(JSON.parse(savedCalculatorData));
+    }
+    
+    if (savedResults) {
+      setResults(JSON.parse(savedResults));
+    }
+  }, []);
 
   // Grab the currently authenticated user (if any)
   const { user } = useAuth();
@@ -77,7 +92,7 @@ export default function CalculatorPage() {
     const needsWarning = targetCalories < minCalories;
     setShowCalorieWarning(needsWarning);
 
-    setResults({
+    const resultsData = {
       bmi: bmi.toFixed(1),
       ibw: Math.round(ibw),
       abw: Math.round(abwKg * 2.20462),
@@ -85,7 +100,13 @@ export default function CalculatorPage() {
       tdee: Math.round(tdee),
       targetCalories: Math.round(targetCalories),
       proteinRange: `${Math.round(proteinLow)}–${Math.round(proteinHigh)}g/day`
-    });
+    };
+
+    setResults(resultsData);
+
+    // Save form data and results to localStorage
+    localStorage.setItem('calculatorData', JSON.stringify(form));
+    localStorage.setItem('calculatorResults', JSON.stringify(resultsData));
 
     // If the user is logged in, save these results to their profile
     if (user) {
@@ -114,9 +135,21 @@ export default function CalculatorPage() {
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Calculate your personalized calorie and protein targets optimized for GLP-1 medication success
         </p>
+        {results && !isEditing && (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="mt-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+          >
+            ✏️ Edit Your Information
+          </button>
+        )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {(!results || isEditing) && (
+        <form onSubmit={(e) => {
+          handleSubmit(e);
+          setIsEditing(false);
+        }} className="space-y-6">
         {/* Basic Information */}
         <div className="bg-white p-6 rounded-lg border border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
@@ -280,6 +313,20 @@ export default function CalculatorPage() {
                 <div className="text-sm text-gray-600">~1 lb/week - Good balance of results and sustainability</div>
               </div>
             </label>
+            <label className="flex items-start p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+              <input
+                type="radio"
+                name="weightLossGoal"
+                value="aggressive"
+                checked={form.weightLossGoal === 'aggressive'}
+                onChange={e => handleChange('weightLossGoal', e.target.value)}
+                className="mt-1 mr-3"
+              />
+              <div>
+                <div className="font-medium text-gray-900">Aggressive</div>
+                <div className="text-sm text-gray-600">~1.5 lbs/week - Faster results, requires medical supervision</div>
+              </div>
+            </label>
           </div>
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">
@@ -288,10 +335,11 @@ export default function CalculatorPage() {
           </div>
         </div>
 
-        <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors">
-          Calculate My Nutrition Targets
-        </button>
-      </form>
+          <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition-colors">
+            {isEditing ? 'Recalculate My Nutrition Targets' : 'Calculate My Nutrition Targets'}
+          </button>
+        </form>
+      )}
 
       {results && (
         <div className="bg-white p-6 rounded-lg border border-gray-200 space-y-6">

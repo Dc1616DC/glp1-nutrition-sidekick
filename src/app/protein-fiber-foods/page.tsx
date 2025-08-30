@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface FoodItem {
@@ -75,10 +76,24 @@ const HIGH_PROTEIN_FIBER_FOODS: FoodItem[] = [
 const CATEGORIES = ['All', 'Legumes', 'Soy Products', 'Seeds & Nuts', 'Poultry', 'Fish', 'Seafood', 'Meat', 'Dairy & Eggs', 'Vegetables', 'Fruits', 'Whole Grains'];
 
 export default function ProteinFiberFoodsPage() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'protein' | 'fiber'>('protein');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [hasViewed, setHasViewed] = useState(false);
+
+  useEffect(() => {
+    // Check if user has viewed this guide
+    const proteinGuideViewed = localStorage.getItem('proteinGuideViewed');
+    setHasViewed(!!proteinGuideViewed);
+  }, []);
+
+  const markAsViewed = () => {
+    localStorage.setItem('proteinGuideViewed', 'true');
+    setHasViewed(true);
+    router.push('/getting-started');
+  };
 
   const filteredFoods = HIGH_PROTEIN_FIBER_FOODS
     .filter(food => {
@@ -307,6 +322,24 @@ export default function ProteinFiberFoodsPage() {
           </div>
         </div>
       </div>
+
+      {/* Completion Button for Onboarding */}
+      {!hasViewed && (
+        <div className="mt-8 bg-white rounded-lg shadow-lg p-6 border-t-4 border-green-500">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Reference Guide Reviewed</h3>
+            <p className="text-gray-600 mb-6">
+              You now have the protein and fiber food reference to support your GLP-1 journey!
+            </p>
+            <button
+              onClick={markAsViewed}
+              className="bg-green-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+            >
+              ✓ Continue Onboarding
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
