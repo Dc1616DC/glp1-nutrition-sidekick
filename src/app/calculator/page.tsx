@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 import { updateUserProfile } from '../../firebase/db';
+import { useUserProfile } from '../../hooks/useUserProfile';
 
 export default function CalculatorPage() {
+  const { user } = useAuth();
+  const { updateOnboardingProgress } = useUserProfile();
   const [form, setForm] = useState({
     age: '',
     weight: '',
@@ -34,8 +37,6 @@ export default function CalculatorPage() {
     }
   }, []);
 
-  // Grab the currently authenticated user (if any)
-  const { user } = useAuth();
 
   const handleChange = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -121,7 +122,7 @@ export default function CalculatorPage() {
         });
         
         // Mark calculator as completed for onboarding flow
-        localStorage.setItem('calculatorComplete', 'true');
+        await updateOnboardingProgress({ calculatorComplete: true });
       } catch (err) {
         console.error('Failed to save calculator results:', err);
       }

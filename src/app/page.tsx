@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import { useUserProfile } from '../hooks/useUserProfile';
 import NutritionOnboarding from '../components/NutritionOnboarding';
 import EveningToolkit from '../components/EveningToolkit';
 import EveningToolkitFollowUp from '../components/EveningToolkitFollowUp';
@@ -45,7 +46,7 @@ export default function Dashboard() {
     // Handle new user onboarding flow
     if (user && !loading) {
       const hasSeenOnboarding = localStorage.getItem('nutritionOnboardingSeen');
-      const hasCompletedCalculator = localStorage.getItem('calculatorComplete');
+      const hasCompletedCalculator = profile?.calculatorComplete;
       
       // If user hasn't completed the basic setup, redirect to getting started
       if (!hasCompletedCalculator && !hasSeenOnboarding) {

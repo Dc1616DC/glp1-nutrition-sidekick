@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { getUserProfile, updateUserProfile, UserProfile } from '../../firebase/db';
 
 // For a novice developer: This is the user's account page. It's a "client component"
@@ -12,6 +13,7 @@ export default function AccountPage() {
   // --- Hooks and State Management ---
 
   const { user, loading: authLoading } = useAuth(); // Get user and auth loading state from our global context
+  const { profile: userProfileHook } = useUserProfile(); // Get profile from Firebase
   const router = useRouter(); // Hook to programmatically navigate between pages
 
   const [profile, setProfile] = useState<UserProfile | null>(null); // State to hold the user's profile data from Firestore
@@ -45,8 +47,7 @@ export default function AccountPage() {
     }
 
     // 3. If user is new (hasn't completed onboarding), redirect to getting-started
-    const hasCompletedCalculator = localStorage.getItem('calculatorComplete');
-    if (!hasCompletedCalculator) {
+    if (!userProfileHook?.calculatorComplete) {
       router.push('/getting-started');
       return;
     }

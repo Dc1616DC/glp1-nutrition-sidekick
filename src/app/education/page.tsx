@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { subscriptionService } from '../../services/subscriptionService';
 import NutritionInsights from '../../components/NutritionInsights';
 import EnhancedNutritionEducation from '../../components/EnhancedNutritionEducation';
@@ -220,6 +221,7 @@ const educationArticles = [
 
 export default function EducationPage() {
   const { user, loading: authLoading } = useAuth();
+  const { profile, updateOnboardingProgress } = useUserProfile();
   const router = useRouter();
   const [hasPremiumAccess, setHasPremiumAccess] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
@@ -236,8 +238,7 @@ export default function EducationPage() {
 
   useEffect(() => {
     // Check if education has been completed
-    const educationSeen = localStorage.getItem('educationSeen');
-    setHasCompletedEducation(!!educationSeen);
+    setHasCompletedEducation(!!profile?.educationSeen);
 
     const checkPremiumAccess = async () => {
       if (authLoading) return;
@@ -260,17 +261,17 @@ export default function EducationPage() {
     };
 
     checkPremiumAccess();
-  }, [user, authLoading]);
+  }, [user, authLoading, profile]);
 
-  const markEducationComplete = () => {
-    localStorage.setItem('educationSeen', 'true');
+  const markEducationComplete = async () => {
+    await updateOnboardingProgress({ educationSeen: true });
     setHasCompletedEducation(true);
     // Redirect back to getting-started to continue onboarding flow
     router.push('/getting-started');
   };
 
-  const skipEducation = () => {
-    localStorage.setItem('educationSeen', 'true');
+  const skipEducation = async () => {
+    await updateOnboardingProgress({ educationSeen: true });
     setHasCompletedEducation(true);
     // Redirect back to getting-started to continue onboarding flow
     router.push('/getting-started');

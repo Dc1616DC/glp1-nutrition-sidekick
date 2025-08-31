@@ -8,10 +8,8 @@ import { useUserProfile } from '../../hooks/useUserProfile';
 
 export default function GettingStarted() {
   const { user } = useAuth();
-  const { profile, updateProfile } = useUserProfile();
+  const { profile, loading, updateProfile } = useUserProfile();
   const router = useRouter();
-  const [hasCompletedCalculator, setHasCompletedCalculator] = useState(false);
-  const [hasSeenEducation, setHasSeenEducation] = useState(false);
   const [showMedicationForm, setShowMedicationForm] = useState(false);
   const [medicationForm, setMedicationForm] = useState({
     medication: '',
@@ -36,19 +34,12 @@ export default function GettingStarted() {
       return;
     }
 
-    // Check completion status
-    const calculatorComplete = localStorage.getItem('calculatorComplete');
-    const educationSeen = localStorage.getItem('educationSeen');
-    
-    setHasCompletedCalculator(!!calculatorComplete);
-    setHasSeenEducation(!!educationSeen);
-    
-    // Show medication form only if no profile exists AND calculator isn't complete
+    // Show medication form only if no profile exists (excluding completion fields)
     // This prevents showing medication form after calculator completion
-    if (!profile && !calculatorComplete) {
+    if (!loading && (!profile || !profile.medication)) {
       setShowMedicationForm(true);
     }
-  }, [user, router]);
+  }, [user, profile, loading, router]);
 
   const onboardingSteps = [
     {
@@ -68,8 +59,8 @@ export default function GettingStarted() {
       description: 'Calculate your personalized protein and calorie targets for GLP-1 success',
       icon: '🎯',
       href: '/calculator',
-      completed: hasCompletedCalculator,
-      primary: !!profile && !hasCompletedCalculator,
+      completed: !!profile?.calculatorComplete,
+      primary: !!profile && !profile?.calculatorComplete,
       estimatedTime: '3 minutes'
     },
     {
@@ -78,7 +69,7 @@ export default function GettingStarted() {
       description: 'Understand the key principles for optimal nutrition while on GLP-1 medications',
       icon: '📚',
       href: '/education',
-      completed: hasSeenEducation,
+      completed: !!profile?.educationSeen,
       estimatedTime: '5 minutes'
     },
     {

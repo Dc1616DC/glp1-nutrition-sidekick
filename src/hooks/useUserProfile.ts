@@ -1,43 +1,95 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase/config';
 
 export interface UserProfile {
   medication: string;
   experience: 'new' | 'experienced' | 'struggling';
   primaryConcerns: string[];
+  calculatorComplete?: boolean;
+  educationSeen?: boolean;
 }
 
 export function useUserProfile() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load profile from localStorage on mount
-    try {
-      const savedProfile = localStorage.getItem('glp1-user-profile');
-      if (savedProfile) {
-        setProfile(JSON.parse(savedProfile));
+    const loadProfile = async () => {
+      if (!user) {
+        setProfile(null);
+        setLoading(false);
+        return;
       }
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
-  }, []);
 
-  const updateProfile = (newProfile: UserProfile) => {
+      try {
+        const docRef = doc(db, 'userProfiles', user.uid);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as UserProfile);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
+
+  const updateProfile = async (newProfile: Partial<UserProfile>) => {
+    if (!user) {
+      console.error('No user logged in');
+      return;
+    }
+
     try {
-      localStorage.setItem('glp1-user-profile', JSON.stringify(newProfile));
-      setProfile(newProfile);
+      const updatedProfile = { ...profile, ...newProfile };
+      const docRef = doc(db, 'userProfiles', user.uid);
+      await setDoc(docRef, updatedProfile, { merge: true });
+      setProfile(updatedProfile as UserProfile);
     } catch (error) {
       console.error('Error saving user profile:', error);
     }
   };
 
-  const clearProfile = () => {
+  const clearProfile = async () => {
+    if (!user) return;
+    
     try {
-      localStorage.removeItem('glp1-user-profile');
       setProfile(null);
+      // Note: We don't delete the document, just clear local state
+      // The document can remain for data persistence
     } catch (error) {
       console.error('Error clearing user profile:', error);
+    }
+  };
+
+  // Helper function to update onboarding completion
+  const updateOnboardingProgress = async (updates: { 
+    calculatorComplete?: boolean; 
+    educationSeen?: boolean;
+  }) => {
+    if (!user) return;
+    
+    try {
+      const docRef = doc(db, 'userProfiles', user.uid);
+      const currentProfile = profile || {};
+      const updatedProfile = { ...currentProfile, ...updates };
+      
+      await setDoc(docRef, updatedProfile, { merge: true });
+      setProfile(updatedProfile as UserProfile);
+    } catch (error) {
+      console.error('Error updating onboarding progress:', error);
     }
   };
 
@@ -96,8 +148,10 @@ export function useUserProfile() {
 
   return {
     profile,
+    loading,
     updateProfile,
     clearProfile,
+    updateOnboardingProgress,
     hasNauseaConcern,
     hasConstipationConcern,
     hasFatigueConcern,
