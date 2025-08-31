@@ -259,7 +259,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Modals */}
       {showNutritionOnboarding && (
-        <NutritionOnboarding onClose={() => setShowNutritionOnboarding(false)} />
+        <NutritionOnboarding 
+          onComplete={() => setShowNutritionOnboarding(false)}
+          onSkip={() => setShowNutritionOnboarding(false)}
+        />
       )}
       {showEveningToolkit && (
         <EveningToolkit onSkip={() => {
