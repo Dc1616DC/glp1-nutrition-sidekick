@@ -45,27 +45,30 @@ export default function Dashboard() {
     // Handle new user onboarding flow
     if (user && !loading) {
       const hasSeenOnboarding = localStorage.getItem('nutritionOnboardingSeen');
-      const hasCompletedCalculator = profile?.calculatorComplete;
+      const hasCompletedOnboarding = profile?.medication && profile?.calculatorComplete && profile?.educationSeen && profile?.proteinGuideViewed;
       
       // If user hasn't completed the basic setup, redirect to getting started
-      if (!hasCompletedCalculator && !hasSeenOnboarding) {
+      if (!hasCompletedOnboarding) {
         setTimeout(() => {
           window.location.href = '/getting-started';
         }, 1000);
         return;
       }
       
-      // Show nutrition onboarding modal for returning users who haven't seen it
-      if (!hasSeenOnboarding) {
-        setTimeout(() => setShowNutritionOnboarding(true), 1500);
-      } else {
-        // Show notification prompt after onboarding is complete
-        const notificationPromptShown = localStorage.getItem('notificationPromptShown');
-        if (!notificationPromptShown) {
-          setTimeout(() => {
-            setShowNotificationPrompt(true);
-            localStorage.setItem('notificationPromptShown', 'true');
-          }, 3000);
+      // User has completed onboarding - show dashboard normally
+      if (hasCompletedOnboarding) {
+        // Show nutrition onboarding modal for returning users who haven't seen it
+        if (!hasSeenOnboarding) {
+          setTimeout(() => setShowNutritionOnboarding(true), 1500);
+        } else {
+          // Show notification prompt after onboarding is complete
+          const notificationPromptShown = localStorage.getItem('notificationPromptShown');
+          if (!notificationPromptShown) {
+            setTimeout(() => {
+              setShowNotificationPrompt(true);
+              localStorage.setItem('notificationPromptShown', 'true');
+            }, 3000);
+          }
         }
       }
       
