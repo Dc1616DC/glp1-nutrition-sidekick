@@ -34,9 +34,9 @@ export default function GettingStarted() {
       return;
     }
 
-    // Show medication form only if no profile exists (excluding completion fields)
+    // Show medication form only if no medication has been selected yet
     // This prevents showing medication form after calculator completion
-    if (!loading && (!profile || !profile.medication)) {
+    if (!loading && !profile?.medication) {
       setShowMedicationForm(true);
     }
   }, [user, profile, loading, router]);
@@ -49,8 +49,8 @@ export default function GettingStarted() {
       icon: '💊',
       href: '#',
       onClick: () => setShowMedicationForm(true),
-      completed: !!profile,
-      primary: !profile,
+      completed: !!profile?.medication,
+      primary: !profile?.medication,
       estimatedTime: '2 minutes'
     },
     {
@@ -60,7 +60,7 @@ export default function GettingStarted() {
       icon: '🎯',
       href: '/calculator',
       completed: !!profile?.calculatorComplete,
-      primary: !!profile && !profile?.calculatorComplete,
+      primary: !!profile?.medication && !profile?.calculatorComplete,
       estimatedTime: '3 minutes'
     },
     {
@@ -291,9 +291,9 @@ export default function GettingStarted() {
                 Tell Us About Your GLP-1 Journey
               </h3>
               
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
-                updateProfile(medicationForm);
+                await updateProfile(medicationForm);
                 setShowMedicationForm(false);
               }} className="space-y-4">
                 {/* Medication Selection */}

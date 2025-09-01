@@ -53,7 +53,9 @@ export function useUserProfile() {
     }
 
     try {
-      const updatedProfile = { ...profile, ...newProfile };
+      // Handle null profile case - use empty object as base
+      const currentProfile = profile || {};
+      const updatedProfile = { ...currentProfile, ...newProfile };
       const docRef = doc(db, 'userProfiles', user.uid);
       await setDoc(docRef, updatedProfile, { merge: true });
       setProfile(updatedProfile as UserProfile);
