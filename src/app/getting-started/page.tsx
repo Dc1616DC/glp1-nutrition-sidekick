@@ -143,6 +143,7 @@ export default function GettingStarted() {
             <div><strong>Profile Status:</strong> {profile ? 'Loaded' : 'None'}</div>
             <div><strong>Medication:</strong> {profile?.medication || 'Not set'}</div>
             <div><strong>Calculator Complete:</strong> {profile?.calculatorComplete ? 'Yes' : 'No'}</div>
+            <div><strong>Protein Guide:</strong> {profile?.proteinGuideViewed ? 'Yes' : 'No'}</div>
             <div><strong>Form Showing:</strong> {showMedicationForm ? 'Yes' : 'No'}</div>
             {testMessage && <div className="mt-2 p-2 bg-white rounded border"><strong>Test:</strong> {testMessage}</div>}
             <button 
