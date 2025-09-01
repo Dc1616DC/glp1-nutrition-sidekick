@@ -8,7 +8,7 @@ import { useUserProfile } from '../../hooks/useUserProfile';
 
 export default function CalculatorPage() {
   const { user } = useAuth();
-  const { updateOnboardingProgress } = useUserProfile();
+  const { profile, updateOnboardingProgress } = useUserProfile();
   const [form, setForm] = useState({
     age: '',
     weight: '',
