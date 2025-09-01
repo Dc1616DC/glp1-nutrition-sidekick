@@ -14,18 +14,32 @@ service cloud.firestore {
     // Helper function to validate user profile data
     function isValidUserProfile(data) {
       return data.keys().hasOnly(['uid', 'email', 'tdee', 'targetCalories', 'proteinGoal', 
-                                 'dietaryRestrictions', 'mealPreferences', 'notificationSettings', 'fcmTokens']) &&
-             data.uid is string &&
-             data.email is string &&
+                                 'dietaryRestrictions', 'mealPreferences', 'notificationSettings', 'fcmTokens',
+                                 'medication', 'experience', 'primaryConcerns', 'calculatorComplete', 'educationSeen']) &&
+             (!('uid' in data) || data.uid is string) &&
+             (!('email' in data) || data.email is string) &&
              (!('tdee' in data) || data.tdee is number) &&
              (!('targetCalories' in data) || data.targetCalories is number) &&
              (!('dietaryRestrictions' in data) || data.dietaryRestrictions is list) &&
              (!('mealPreferences' in data) || data.mealPreferences is list) &&
-             (!('fcmTokens' in data) || data.fcmTokens is list);
+             (!('fcmTokens' in data) || data.fcmTokens is list) &&
+             (!('medication' in data) || data.medication is string) &&
+             (!('experience' in data) || data.experience is string) &&
+             (!('primaryConcerns' in data) || data.primaryConcerns is list) &&
+             (!('calculatorComplete' in data) || data.calculatorComplete is bool) &&
+             (!('educationSeen' in data) || data.educationSeen is bool);
     }
     
     // User profiles - users can only read and write their own data
     match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+    
+    // User profiles (new collection) - users can only read and write their own data
+    match /userProfiles/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
       allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
