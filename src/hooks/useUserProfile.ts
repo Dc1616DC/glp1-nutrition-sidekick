@@ -21,28 +21,22 @@ export function useUserProfile() {
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) {
-        console.log('🔥 No user - clearing profile');
         setProfile(null);
         setLoading(false);
         return;
       }
-
-      console.log('🔥 Loading profile for user:', user.uid);
 
       try {
         const docRef = doc(db, 'userProfiles', user.uid);
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
-          const profileData = docSnap.data() as UserProfile;
-          console.log('🔥 Profile loaded from Firebase:', profileData);
-          setProfile(profileData);
+          setProfile(docSnap.data() as UserProfile);
         } else {
-          console.log('🔥 No profile document exists - setting null');
           setProfile(null);
         }
       } catch (error) {
-        console.error('❌ Error loading user profile:', error);
+        console.error('Error loading user profile:', error);
         setProfile(null);
       } finally {
         setLoading(false);
@@ -58,23 +52,24 @@ export function useUserProfile() {
       return;
     }
 
-    console.log('🔥 updateProfile called with:', newProfile);
-    console.log('🔥 Current profile:', profile);
-
     try {
       // Handle null profile case - use empty object as base
       const currentProfile = profile || {};
       const updatedProfile = { ...currentProfile, ...newProfile };
-      console.log('🔥 Updated profile to save:', updatedProfile);
       
       const docRef = doc(db, 'userProfiles', user.uid);
       await setDoc(docRef, updatedProfile, { merge: true });
-      console.log('🔥 Profile saved to Firebase successfully');
       
+      // Update local state immediately
       setProfile(updatedProfile as UserProfile);
-      console.log('🔥 Local profile state updated');
+      
+      // Force reload from Firebase to ensure consistency
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setProfile(docSnap.data() as UserProfile);
+      }
     } catch (error) {
-      console.error('❌ Error saving user profile:', error);
+      console.error('Error saving user profile:', error);
     }
   };
 
@@ -103,7 +98,15 @@ export function useUserProfile() {
       const updatedProfile = { ...currentProfile, ...updates };
       
       await setDoc(docRef, updatedProfile, { merge: true });
+      
+      // Update local state immediately
       setProfile(updatedProfile as UserProfile);
+      
+      // Force reload from Firebase to ensure consistency
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setProfile(docSnap.data() as UserProfile);
+      }
     } catch (error) {
       console.error('Error updating onboarding progress:', error);
     }
