@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useUserProfile } from '../../hooks/useUserProfile';
 
 export default function GettingStarted() {
@@ -85,6 +85,17 @@ export default function GettingStarted() {
 
   const completedSteps = onboardingSteps.filter(step => step.completed).length;
   const progressPercentage = (completedSteps / 3) * 100; // Count medication, calculator, and education
+
+  // Simple debug: show completion status
+  React.useEffect(() => {
+    if (profile) {
+      console.log('Profile loaded:', {
+        medication: profile.medication,
+        calculatorComplete: profile.calculatorComplete,
+        educationSeen: profile.educationSeen
+      });
+    }
+  }, [profile]);
 
   if (!user || loading) {
     return (
@@ -293,8 +304,14 @@ export default function GettingStarted() {
               
               <form onSubmit={async (e) => {
                 e.preventDefault();
-                await updateProfile(medicationForm);
-                setShowMedicationForm(false);
+                try {
+                  console.log('Saving medication form:', medicationForm);
+                  await updateProfile(medicationForm);
+                  console.log('Profile updated successfully');
+                  setShowMedicationForm(false);
+                } catch (error) {
+                  console.error('Error saving medication form:', error);
+                }
               }} className="space-y-4">
                 {/* Medication Selection */}
                 <div>
