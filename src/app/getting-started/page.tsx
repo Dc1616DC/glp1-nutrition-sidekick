@@ -11,6 +11,7 @@ export default function GettingStarted() {
   const { profile, loading, updateProfile } = useUserProfile();
   const router = useRouter();
   const [showMedicationForm, setShowMedicationForm] = useState(false);
+  const [medicationFormCompleted, setMedicationFormCompleted] = useState(false);
   const [medicationForm, setMedicationForm] = useState({
     medication: '',
     experience: 'new' as 'new' | 'experienced' | 'struggling',
@@ -33,13 +34,21 @@ export default function GettingStarted() {
       router.push('/signin?redirect=getting-started');
       return;
     }
+  }, [user, router]);
 
-    // Show medication form only if no medication has been selected yet
-    // This prevents showing medication form after calculator completion
-    if (!loading && !profile?.medication) {
-      setShowMedicationForm(true);
+  // Show medication form only on first load if no medication and not already completed
+  useEffect(() => {
+    if (!loading && profile !== null) {
+      // Check if medication data exists
+      if (profile?.medication) {
+        setMedicationFormCompleted(true);
+        setShowMedicationForm(false);
+      } else if (!medicationFormCompleted && !showMedicationForm) {
+        // Only show form if we haven't completed it and it's not already showing
+        setShowMedicationForm(true);
+      }
     }
-  }, [user, profile, loading, router]);
+  }, [loading, profile, medicationFormCompleted, showMedicationForm]);
 
   const onboardingSteps = [
     {
@@ -308,6 +317,7 @@ export default function GettingStarted() {
                   console.log('Saving medication form:', medicationForm);
                   await updateProfile(medicationForm);
                   console.log('Profile updated successfully');
+                  setMedicationFormCompleted(true);
                   setShowMedicationForm(false);
                 } catch (error) {
                   console.error('Error saving medication form:', error);
