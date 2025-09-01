@@ -12,6 +12,7 @@ export default function GettingStarted() {
   const router = useRouter();
   const [showMedicationForm, setShowMedicationForm] = useState(false);
   const [medicationFormCompleted, setMedicationFormCompleted] = useState(false);
+  const [testMessage, setTestMessage] = useState('');
   const [medicationForm, setMedicationForm] = useState({
     medication: '',
     experience: 'new' as 'new' | 'experienced' | 'struggling',
@@ -95,6 +96,17 @@ export default function GettingStarted() {
   const completedSteps = onboardingSteps.filter(step => step.completed).length;
   const progressPercentage = (completedSteps / 3) * 100; // Count medication, calculator, and education
 
+  // Simple test function to verify Firebase save
+  const testFirebaseSave = async () => {
+    setTestMessage('Testing Firebase save...');
+    try {
+      await updateProfile({ medication: 'test-ozempic', experience: 'new', primaryConcerns: ['test'] });
+      setTestMessage('✅ Firebase save SUCCESS! Profile should update.');
+    } catch (error) {
+      setTestMessage('❌ Firebase save FAILED: ' + error.message);
+    }
+  };
+
   // Simple debug: show completion status
   React.useEffect(() => {
     if (profile) {
@@ -125,6 +137,21 @@ export default function GettingStarted() {
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">
             🎯 Getting Started
           </h1>
+          
+          {/* Debug Info */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-sm">
+            <div><strong>Profile Status:</strong> {profile ? 'Loaded' : 'None'}</div>
+            <div><strong>Medication:</strong> {profile?.medication || 'Not set'}</div>
+            <div><strong>Calculator Complete:</strong> {profile?.calculatorComplete ? 'Yes' : 'No'}</div>
+            <div><strong>Form Showing:</strong> {showMedicationForm ? 'Yes' : 'No'}</div>
+            {testMessage && <div className="mt-2 p-2 bg-white rounded border"><strong>Test:</strong> {testMessage}</div>}
+            <button 
+              onClick={testFirebaseSave}
+              className="mt-2 px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+            >
+              Test Firebase Save
+            </button>
+          </div>
           <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto mb-4 sm:mb-6">
             Let's set up your personalized GLP-1 nutrition plan in just a few minutes
           </p>
