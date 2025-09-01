@@ -86,6 +86,13 @@ export default function GettingStarted() {
   const completedSteps = onboardingSteps.filter(step => step.completed).length;
   const progressPercentage = (completedSteps / 3) * 100; // Count medication, calculator, and education
 
+  // Debug logging
+  console.log('🔥 Getting Started - Profile state:', profile);
+  console.log('🔥 Getting Started - Medication completed:', !!profile?.medication);
+  console.log('🔥 Getting Started - Calculator completed:', !!profile?.calculatorComplete);
+  console.log('🔥 Getting Started - Education completed:', !!profile?.educationSeen);
+  console.log('🔥 Getting Started - Show medication form:', showMedicationForm);
+
   if (!user) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
