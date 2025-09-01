@@ -11,6 +11,7 @@ export interface UserProfile {
   primaryConcerns: string[];
   calculatorComplete?: boolean;
   educationSeen?: boolean;
+  proteinGuideViewed?: boolean;
 }
 
 export function useUserProfile() {
@@ -89,6 +90,7 @@ export function useUserProfile() {
   const updateOnboardingProgress = async (updates: { 
     calculatorComplete?: boolean; 
     educationSeen?: boolean;
+    proteinGuideViewed?: boolean;
   }) => {
     if (!user) return;
     

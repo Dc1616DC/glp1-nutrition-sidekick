@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useUserProfile } from '../../hooks/useUserProfile';
 
 interface FoodItem {
   name: string;
@@ -77,6 +78,7 @@ const CATEGORIES = ['All', 'Legumes', 'Soy Products', 'Seeds & Nuts', 'Poultry',
 
 export default function ProteinFiberFoodsPage() {
   const router = useRouter();
+  const { profile, updateOnboardingProgress } = useUserProfile();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'protein' | 'fiber'>('protein');
@@ -84,15 +86,18 @@ export default function ProteinFiberFoodsPage() {
   const [hasViewed, setHasViewed] = useState(false);
 
   useEffect(() => {
-    // Check if user has viewed this guide
-    const proteinGuideViewed = localStorage.getItem('proteinGuideViewed');
-    setHasViewed(!!proteinGuideViewed);
-  }, []);
+    // Check if user has viewed this guide from Firebase profile
+    setHasViewed(!!profile?.proteinGuideViewed);
+  }, [profile]);
 
-  const markAsViewed = () => {
-    localStorage.setItem('proteinGuideViewed', 'true');
-    setHasViewed(true);
-    router.push('/getting-started');
+  const markAsViewed = async () => {
+    try {
+      await updateOnboardingProgress({ proteinGuideViewed: true } as any);
+      setHasViewed(true);
+      router.push('/getting-started');
+    } catch (error) {
+      console.error('Error marking protein guide as viewed:', error);
+    }
   };
 
   const filteredFoods = HIGH_PROTEIN_FIBER_FOODS

@@ -15,7 +15,7 @@ service cloud.firestore {
     function isValidUserProfile(data) {
       return data.keys().hasOnly(['uid', 'email', 'tdee', 'targetCalories', 'proteinGoal', 
                                  'dietaryRestrictions', 'mealPreferences', 'notificationSettings', 'fcmTokens',
-                                 'medication', 'experience', 'primaryConcerns', 'calculatorComplete', 'educationSeen']) &&
+                                 'medication', 'experience', 'primaryConcerns', 'calculatorComplete', 'educationSeen', 'proteinGuideViewed']) &&
              (!('uid' in data) || data.uid is string) &&
              (!('email' in data) || data.email is string) &&
              (!('tdee' in data) || data.tdee is number) &&
@@ -27,7 +27,8 @@ service cloud.firestore {
              (!('experience' in data) || data.experience is string) &&
              (!('primaryConcerns' in data) || data.primaryConcerns is list) &&
              (!('calculatorComplete' in data) || data.calculatorComplete is bool) &&
-             (!('educationSeen' in data) || data.educationSeen is bool);
+             (!('educationSeen' in data) || data.educationSeen is bool) &&
+             (!('proteinGuideViewed' in data) || data.proteinGuideViewed is bool);
     }
     
     // User profiles - users can only read and write their own data

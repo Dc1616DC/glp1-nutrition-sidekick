@@ -23,19 +23,25 @@ export default function CalculatorPage() {
   const [showCalorieWarning, setShowCalorieWarning] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  // Load saved calculator data on mount
+  // Load saved calculator data on mount - only if user has completed calculator before
   useEffect(() => {
-    const savedCalculatorData = localStorage.getItem('calculatorData');
-    const savedResults = localStorage.getItem('calculatorResults');
-    
-    if (savedCalculatorData) {
-      setForm(JSON.parse(savedCalculatorData));
+    if (user && profile?.calculatorComplete) {
+      const savedCalculatorData = localStorage.getItem('calculatorData');
+      const savedResults = localStorage.getItem('calculatorResults');
+      
+      if (savedCalculatorData) {
+        setForm(JSON.parse(savedCalculatorData));
+      }
+      
+      if (savedResults) {
+        setResults(JSON.parse(savedResults));
+      }
+    } else {
+      // Clear any old localStorage data for new users
+      localStorage.removeItem('calculatorData');
+      localStorage.removeItem('calculatorResults');
     }
-    
-    if (savedResults) {
-      setResults(JSON.parse(savedResults));
-    }
-  }, []);
+  }, [user, profile]);
 
 
   const handleChange = (field: string, value: string) => {

@@ -88,13 +88,13 @@ export default function GettingStarted() {
       description: 'Quick reference guide for high-protein and high-fiber food options',
       icon: '🥗',
       href: '/protein-fiber-foods',
-      completed: false, // This is a reference, not a completion step
+      completed: !!profile?.proteinGuideViewed,
       estimatedTime: '2 minutes'
     }
   ];
 
   const completedSteps = onboardingSteps.filter(step => step.completed).length;
-  const progressPercentage = (completedSteps / 3) * 100; // Count medication, calculator, and education
+  const progressPercentage = (completedSteps / 4) * 100; // Count medication, calculator, education, and protein guide
 
   // Simple test function to verify Firebase save
   const testFirebaseSave = async () => {
