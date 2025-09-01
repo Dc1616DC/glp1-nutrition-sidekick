@@ -19,7 +19,6 @@ import { mealLoggingService } from '../services/mealLoggingService';
 import { mealCommitmentService } from '../services/mealCommitmentService';
 import { subscriptionService } from '../services/subscriptionService';
 import { getWeeklyTip } from '../data/weeklyTips';
-import { useUserProfile } from '../hooks/useUserProfile';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
