@@ -95,6 +95,7 @@ export default function GettingStarted() {
 
   const completedSteps = onboardingSteps.filter(step => step.completed).length;
   const progressPercentage = (completedSteps / 4) * 100; // Count medication, calculator, education, and protein guide
+  const isOnboardingComplete = completedSteps === 4;
 
   // Simple test function to verify Firebase save
   const testFirebaseSave = async () => {
@@ -297,7 +298,7 @@ export default function GettingStarted() {
         </div>
 
         {/* Next Steps */}
-        {progressPercentage === 100 ? (
+        {isOnboardingComplete ? (
           <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-8 text-center text-white">
             <div className="text-5xl mb-4">🎉</div>
             <h2 className="text-2xl font-bold mb-4">Great job! You're all set up!</h2>
@@ -311,12 +312,16 @@ export default function GettingStarted() {
               >
                 Generate Your First Meal
               </Link>
-              <Link
-                href="/"
+              <button
+                onClick={() => {
+                  // Ensure onboarding flags are set to prevent redirect loops
+                  localStorage.setItem('nutritionOnboardingSeen', 'true');
+                  router.push('/');
+                }}
                 className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:bg-opacity-10 transition-colors"
               >
                 Go to Dashboard
-              </Link>
+              </button>
             </div>
           </div>
         ) : (

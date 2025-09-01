@@ -94,6 +94,10 @@ export default function ProteinFiberFoodsPage() {
     try {
       await updateOnboardingProgress({ proteinGuideViewed: true } as any);
       setHasViewed(true);
+      
+      // Mark old onboarding as seen to prevent modal conflicts
+      localStorage.setItem('nutritionOnboardingSeen', 'true');
+      
       router.push('/getting-started');
     } catch (error) {
       console.error('Error marking protein guide as viewed:', error);
