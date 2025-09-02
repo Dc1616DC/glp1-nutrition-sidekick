@@ -42,33 +42,35 @@ export default function Dashboard() {
     // Check notification permissions
     getNotificationPermissionState();
     
-    // Handle new user onboarding flow
-    if (user && !loading) {
+    // Handle new user onboarding flow - only redirect if truly needed
+    if (user && !loading && profile) {
       const hasSeenOnboarding = localStorage.getItem('nutritionOnboardingSeen');
       const hasCompletedOnboarding = profile?.medication && profile?.calculatorComplete && profile?.educationSeen && profile?.proteinGuideViewed;
       
-      // If user hasn't completed the basic setup, redirect to getting started
-      if (!hasCompletedOnboarding) {
+      console.log('Dashboard logic - Complete:', hasCompletedOnboarding, 'Seen:', !!hasSeenOnboarding);
+      
+      // ONLY redirect if onboarding is incomplete AND user hasn't seen it before
+      if (!hasCompletedOnboarding && !hasSeenOnboarding) {
+        console.log('Redirecting to getting-started - truly incomplete onboarding');
         setTimeout(() => {
           window.location.href = '/getting-started';
         }, 1000);
         return;
       }
       
-      // User has completed onboarding - show dashboard normally
-      if (hasCompletedOnboarding) {
-        // Show nutrition onboarding modal for returning users who haven't seen it
-        if (!hasSeenOnboarding) {
-          setTimeout(() => setShowNutritionOnboarding(true), 1500);
-        } else {
-          // Show notification prompt after onboarding is complete
-          const notificationPromptShown = localStorage.getItem('notificationPromptShown');
-          if (!notificationPromptShown) {
-            setTimeout(() => {
-              setShowNotificationPrompt(true);
-              localStorage.setItem('notificationPromptShown', 'true');
-            }, 3000);
-          }
+      // If we get here, either onboarding is complete OR user has seen it before
+      // Show dashboard normally and handle modals
+      if (hasCompletedOnboarding && !hasSeenOnboarding) {
+        // Show nutrition modal for completed users who haven't seen it
+        setTimeout(() => setShowNutritionOnboarding(true), 1500);
+      } else if (hasCompletedOnboarding) {
+        // Show notification prompt for fully onboarded users
+        const notificationPromptShown = localStorage.getItem('notificationPromptShown');
+        if (!notificationPromptShown) {
+          setTimeout(() => {
+            setShowNotificationPrompt(true);
+            localStorage.setItem('notificationPromptShown', 'true');
+          }, 3000);
         }
       }
       
