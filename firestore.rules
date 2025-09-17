@@ -173,6 +173,34 @@ service cloud.firestore {
       allow delete: if false; // Use update to deactivate instead
     }
     
+    // User injection tracking data
+    match /userInjections/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isOwner(userId);
+      
+      // Individual injection records
+      match /injections/{injectionId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId) && 
+                        request.resource.data.userId == request.auth.uid &&
+                        request.resource.data.keys().hasAll(['timestamp', 'site', 'dose', 'medication']);
+        allow update: if isOwner(userId) && 
+                        resource.data.userId == request.auth.uid &&
+                        request.resource.data.userId == request.auth.uid;
+        allow delete: if isOwner(userId);
+      }
+    }
+    
+    // User settings and preferences (migrated from localStorage)
+    match /userSettings/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && request.resource.data.userId == userId;
+      allow delete: if isOwner(userId);
+    }
+    
     // Default deny all other access
     match /{document=**} {
       allow read, write: if false;

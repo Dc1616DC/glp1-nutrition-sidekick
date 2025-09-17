@@ -9,6 +9,7 @@ import {
 } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "../firebase/config";
+import { dataMigrationService } from "../services/dataMigrationService";
 
 // For a novice developer:
 // Think of a Context as a global storage space for your app.
@@ -37,8 +38,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // onAuthStateChanged is a Firebase function that listens for changes
     // in the user's login state. It's the perfect tool for this job.
     // It runs once when it's set up, and then again every time a user signs in or out.
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      
+      // Migrate localStorage data to Firestore when user logs in
+      if (user) {
+        try {
+          const needsMigration = await dataMigrationService.isMigrationNeeded(user.uid);
+          if (needsMigration) {
+            console.log('Starting data migration for user:', user.uid);
+            const result = await dataMigrationService.migrateAllData(user.uid);
+            if (result.success) {
+              console.log('Data migration completed successfully:', result.migratedItems);
+            } else {
+              console.error('Data migration had errors:', result.errors);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to check/perform data migration:', error);
+        }
+      }
+      
       setLoading(false);
     });
 

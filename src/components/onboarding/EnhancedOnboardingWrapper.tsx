@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import OnboardingWelcome from './OnboardingWelcome';
 import OnboardingFeaturePreview from './OnboardingFeaturePreview';
 import GLP1EducationOnboarding from '../GLP1EducationOnboarding';
+import { useUserProfile } from '../../hooks/useUserProfile';
+import { useAuth } from '../../context/AuthContext';
 
 interface UserProfile {
   medication: string;
@@ -17,35 +19,67 @@ interface Props {
 
 export default function EnhancedOnboardingWrapper({ children }: Props) {
   const [currentPhase, setCurrentPhase] = useState<'loading' | 'welcome' | 'preview' | 'education' | 'complete'>('loading');
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [localUserProfile, setLocalUserProfile] = useState<UserProfile | null>(null);
   const [selectedMedication, setSelectedMedication] = useState<string>('');
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading, updateProfile } = useUserProfile();
 
   useEffect(() => {
-    // Check if user has completed onboarding (client-side only)
-    try {
-      const hasCompletedOnboarding = localStorage.getItem('glp1-enhanced-onboarding-completed');
-      const hasSkippedOnboarding = localStorage.getItem('glp1-onboarding-skipped');
+    // Check if user has completed onboarding based on Firestore profile
+    if (authLoading || profileLoading) {
+      setCurrentPhase('loading');
+      return;
+    }
+
+    if (!user) {
+      // For unauthenticated users, check localStorage as fallback
+      try {
+        const hasCompletedOnboarding = localStorage.getItem('glp1-enhanced-onboarding-completed');
+        const hasSkippedOnboarding = localStorage.getItem('glp1-onboarding-skipped');
+        
+        if (hasCompletedOnboarding || hasSkippedOnboarding) {
+          setCurrentPhase('complete');
+        } else {
+          setCurrentPhase('welcome');
+        }
+      } catch (error) {
+        console.log('localStorage not available, showing onboarding');
+        setCurrentPhase('welcome');
+      }
+    } else {
+      // For authenticated users, check Firestore profile
+      const isOnboardingComplete = profile?.medication && 
+                                   profile?.experience && 
+                                   (profile?.onboardingCompleted || profile?.onboardingSkipped);
       
-      if (hasCompletedOnboarding || hasSkippedOnboarding) {
+      if (isOnboardingComplete) {
         setCurrentPhase('complete');
       } else {
         setCurrentPhase('welcome');
       }
-    } catch (error) {
-      console.log('localStorage not available, showing onboarding');
-      setCurrentPhase('welcome');
     }
-  }, []);
+  }, [user, authLoading, profileLoading, profile]);
 
-  const handleWelcomeComplete = (medication: string, profile: UserProfile) => {
+  const handleWelcomeComplete = async (medication: string, profileData: UserProfile) => {
     setSelectedMedication(medication);
-    setUserProfile(profile);
+    setLocalUserProfile(profileData);
+    
+    // Save to Firestore if user is authenticated
+    if (user) {
+      await updateProfile({
+        medication: profileData.medication,
+        experience: profileData.experience,
+        primaryConcerns: profileData.primaryConcerns
+      });
+    }
+    
     setCurrentPhase('preview');
   };
 
   const handlePreviewComplete = () => {
     // For users who are struggling or new, show education
-    if (userProfile?.experience === 'struggling' || userProfile?.experience === 'new') {
+    const experienceToCheck = localUserProfile?.experience || profile?.experience;
+    if (experienceToCheck === 'struggling' || experienceToCheck === 'new') {
       setCurrentPhase('education');
     } else {
       // Experienced users can skip straight to the app
@@ -57,12 +91,21 @@ export default function EnhancedOnboardingWrapper({ children }: Props) {
     handleFinalComplete();
   };
 
-  const handleFinalComplete = () => {
+  const handleFinalComplete = async () => {
     try {
-      localStorage.setItem('glp1-enhanced-onboarding-completed', 'true');
-      // Store user profile for personalization
-      if (userProfile) {
-        localStorage.setItem('glp1-user-profile', JSON.stringify(userProfile));
+      // Save to Firestore if user is authenticated
+      if (user) {
+        await updateProfile({
+          onboardingCompleted: true,
+          onboardingCompletedAt: new Date().toISOString()
+        });
+      } else {
+        // Fallback to localStorage for unauthenticated users
+        localStorage.setItem('glp1-enhanced-onboarding-completed', 'true');
+        // Store user profile for personalization
+        if (localUserProfile) {
+          localStorage.setItem('glp1-user-profile', JSON.stringify(localUserProfile));
+        }
       }
       // Remove old onboarding flag if it exists
       localStorage.removeItem('glp1-onboarding-completed');
@@ -72,10 +115,19 @@ export default function EnhancedOnboardingWrapper({ children }: Props) {
     setCurrentPhase('complete');
   };
 
-  const handleSkipAll = () => {
+  const handleSkipAll = async () => {
     try {
-      localStorage.setItem('glp1-onboarding-skipped', 'true');
-      localStorage.setItem('glp1-enhanced-onboarding-completed', 'true');
+      if (user) {
+        await updateProfile({
+          onboardingSkipped: true,
+          onboardingCompleted: true,
+          onboardingCompletedAt: new Date().toISOString()
+        });
+      } else {
+        // Fallback to localStorage for unauthenticated users
+        localStorage.setItem('glp1-onboarding-skipped', 'true');
+        localStorage.setItem('glp1-enhanced-onboarding-completed', 'true');
+      }
     } catch (error) {
       console.log('Failed to save onboarding skip status');
     }
@@ -177,10 +229,10 @@ export default function EnhancedOnboardingWrapper({ children }: Props) {
           </button>
           
           {/* Welcome back message for new users */}
-          {userProfile && (
+          {(profile || localUserProfile) && (
             <div className="absolute bottom-full right-0 mb-2 bg-white rounded-lg shadow-lg p-3 text-xs max-w-xs opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
               <div className="font-medium text-gray-800 mb-1">
-                Welcome back, {userProfile.medication} user! 👋
+                Welcome back, {(profile?.medication || localUserProfile?.medication)} user! 👋
               </div>
               <div className="text-gray-600">
                 Tap to review education or adjust your preferences

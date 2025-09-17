@@ -11,22 +11,31 @@ export default function InjectionWidget() {
   const [showLogger, setShowLogger] = useState(false);
   const [lastInjection, setLastInjection] = useState<any>(null);
   const [currentMedication, setCurrentMedication] = useState<string>('ozempic');
+  const [adherenceRate, setAdherenceRate] = useState<string>('N/A');
 
   useEffect(() => {
-    const loadData = () => {
-      const last = injectionService.getLastInjection();
-      if (last) {
-        setLastInjection(last);
-        setCurrentMedication(last.medication);
-        
-        const days = injectionService.getDaysSinceLastInjection();
-        setDaysSinceInjection(days);
-        
-        const isDue = injectionService.isInjectionDue(last.medication);
-        setIsInjectionDue(isDue);
-      } else {
-        setDaysSinceInjection(-1);
-        setIsInjectionDue(true);
+    const loadData = async () => {
+      try {
+        const last = await injectionService.getLastInjection();
+        if (last) {
+          setLastInjection(last);
+          setCurrentMedication(last.medication);
+          
+          const days = await injectionService.getDaysSinceLastInjection();
+          setDaysSinceInjection(days);
+          
+          const isDue = await injectionService.isInjectionDue(last.medication);
+          setIsInjectionDue(isDue);
+          
+          // Get adherence rate
+          const pattern = await injectionService.getInjectionPattern();
+          setAdherenceRate(pattern.adherenceRate || 'N/A');
+        } else {
+          setDaysSinceInjection(-1);
+          setIsInjectionDue(true);
+        }
+      } catch (error) {
+        console.error('Error loading injection data:', error);
       }
     };
 
@@ -36,14 +45,18 @@ export default function InjectionWidget() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleInjectionLogged = () => {
+  const handleInjectionLogged = async () => {
     // Refresh data after logging
-    const last = injectionService.getLastInjection();
-    if (last) {
-      setLastInjection(last);
-      setCurrentMedication(last.medication);
-      setDaysSinceInjection(0);
-      setIsInjectionDue(false);
+    try {
+      const last = await injectionService.getLastInjection();
+      if (last) {
+        setLastInjection(last);
+        setCurrentMedication(last.medication);
+        setDaysSinceInjection(0);
+        setIsInjectionDue(false);
+      }
+    } catch (error) {
+      console.error('Error refreshing injection data:', error);
     }
     setShowLogger(false);
   };
@@ -114,7 +127,7 @@ export default function InjectionWidget() {
           <div className="mt-3 pt-3 border-t border-gray-200">
             <div className="flex justify-between text-xs text-gray-500">
               <span>Next due: {medicationInfo.frequency === 'daily' ? 'Tomorrow' : `${7 - daysSinceInjection} days`}</span>
-              <span>Adherence: {injectionService.getInjectionPattern().adherenceRate || 'N/A'}</span>
+              <span>Adherence: {adherenceRate}</span>
             </div>
           </div>
         )}

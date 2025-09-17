@@ -26,35 +26,40 @@ export default function InjectionLogger({
 
   const medicationInfo = MEDICATION_INFO[medication as keyof typeof MEDICATION_INFO];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedSite) {
       alert('Please select an injection site');
       return;
     }
 
-    injectionService.saveInjection({
-      timestamp: new Date(injectionTime),
-      site: selectedSite as any,
-      dose,
-      medication: medication as any,
-      notes: notes.trim() || undefined
-    });
-
-    // Save dose schedule if this is the first injection or dose changed
-    const currentSchedule = injectionService.getDoseSchedule();
-    if (!currentSchedule || currentSchedule.dose !== dose) {
-      const nextEscalation = new Date(injectionTime);
-      nextEscalation.setDate(nextEscalation.getDate() + 28); // 4 weeks minimum
-      
-      injectionService.saveDoseSchedule({
-        startDate: new Date(injectionTime),
+    try {
+      await injectionService.saveInjection({
+        timestamp: new Date(injectionTime),
+        site: selectedSite as any,
         dose,
         medication: medication as any,
-        nextEscalationDate: nextEscalation
+        notes: notes.trim() || undefined
       });
-    }
 
-    onSave();
+      // Save dose schedule if this is the first injection or dose changed
+      const currentSchedule = await injectionService.getDoseSchedule();
+      if (!currentSchedule || currentSchedule.dose !== dose) {
+        const nextEscalation = new Date(injectionTime);
+        nextEscalation.setDate(nextEscalation.getDate() + 28); // 4 weeks minimum
+        
+        await injectionService.saveDoseSchedule({
+          startDate: new Date(injectionTime),
+          dose,
+          medication: medication as any,
+          nextEscalationDate: nextEscalation
+        });
+      }
+
+      onSave();
+    } catch (error) {
+      console.error('Error saving injection:', error);
+      alert('Failed to save injection. Please try again.');
+    }
   };
 
   return (

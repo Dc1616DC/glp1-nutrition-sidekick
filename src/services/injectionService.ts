@@ -1,12 +1,53 @@
 import { Injection, DoseSchedule, InjectionSite } from '@/types/injection';
+import { firestoreInjectionService } from './firestoreInjectionService';
+import { auth } from '@/firebase/config';
+import { onAuthStateChanged } from 'firebase/auth';
 
 class InjectionService {
   private readonly STORAGE_KEY = 'glp1_injections';
   private readonly DOSE_SCHEDULE_KEY = 'glp1_dose_schedule';
   private readonly SITE_ROTATION_DAYS = 14; // FDA recommends 2 week rotation
+  private useFirestore = false;
+  private currentUserId: string | null = null;
+  private migrationInProgress = false;
 
-  // Get all injections from local storage
-  getInjections(): Injection[] {
+  constructor() {
+    // Listen for auth state changes
+    if (typeof window !== 'undefined') {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          this.currentUserId = user.uid;
+          this.useFirestore = true;
+          firestoreInjectionService.setUserId(user.uid);
+          
+          // Automatically migrate data on first login
+          if (!this.migrationInProgress) {
+            this.migrationInProgress = true;
+            try {
+              await firestoreInjectionService.migrateFromLocalStorage();
+              console.log('Successfully migrated injection data to Firestore');
+            } catch (error) {
+              console.error('Migration failed, continuing with hybrid mode:', error);
+            } finally {
+              this.migrationInProgress = false;
+            }
+          }
+        } else {
+          this.currentUserId = null;
+          this.useFirestore = false;
+          firestoreInjectionService.setUserId(null);
+        }
+      });
+    }
+  }
+
+  // Get all injections - uses Firestore if authenticated, localStorage otherwise
+  async getInjections(): Promise<Injection[]> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getInjections();
+    }
+    
+    // Fallback to localStorage for unauthenticated users
     if (typeof window === 'undefined') return [];
     
     const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -20,9 +61,14 @@ class InjectionService {
     }));
   }
 
-  // Save injection to local storage
-  saveInjection(injection: Omit<Injection, 'id'>): Injection {
-    const injections = this.getInjections();
+  // Save injection - uses Firestore if authenticated, localStorage otherwise
+  async saveInjection(injection: Omit<Injection, 'id'>): Promise<Injection> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.saveInjection(injection);
+    }
+    
+    // Fallback to localStorage
+    const injections = await this.getInjections();
     const newInjection: Injection = {
       ...injection,
       id: `inj_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
@@ -36,14 +82,22 @@ class InjectionService {
   }
 
   // Get the most recent injection
-  getLastInjection(): Injection | null {
-    const injections = this.getInjections();
+  async getLastInjection(): Promise<Injection | null> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getLastInjection();
+    }
+    
+    const injections = await this.getInjections();
     return injections.length > 0 ? injections[0] : null;
   }
 
   // Get days since last injection
-  getDaysSinceLastInjection(): number {
-    const lastInjection = this.getLastInjection();
+  async getDaysSinceLastInjection(): Promise<number> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getDaysSinceLastInjection();
+    }
+    
+    const lastInjection = await this.getLastInjection();
     if (!lastInjection) return -1;
     
     const now = new Date();
@@ -53,8 +107,12 @@ class InjectionService {
   }
 
   // Get hours since last injection (useful for daily medications)
-  getHoursSinceLastInjection(): number {
-    const lastInjection = this.getLastInjection();
+  async getHoursSinceLastInjection(): Promise<number> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getHoursSinceLastInjection();
+    }
+    
+    const lastInjection = await this.getLastInjection();
     if (!lastInjection) return -1;
     
     const now = new Date();
@@ -64,12 +122,16 @@ class InjectionService {
   }
 
   // Check if it's time for next injection
-  isInjectionDue(medication: string): boolean {
-    const lastInjection = this.getLastInjection();
+  async isInjectionDue(medication: string): Promise<boolean> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.isInjectionDue(medication);
+    }
+    
+    const lastInjection = await this.getLastInjection();
     if (!lastInjection) return true;
     
-    const daysSince = this.getDaysSinceLastInjection();
-    const hoursSince = this.getHoursSinceLastInjection();
+    const daysSince = await this.getDaysSinceLastInjection();
+    const hoursSince = await this.getHoursSinceLastInjection();
     
     // Daily medications (Saxenda, Victoza)
     if (medication === 'saxenda' || medication === 'victoza') {
@@ -81,8 +143,12 @@ class InjectionService {
   }
 
   // Get injection sites with rotation warnings
-  getInjectionSites(): InjectionSite[] {
-    const injections = this.getInjections();
+  async getInjectionSites(): Promise<InjectionSite[]> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getInjectionSites();
+    }
+    
+    const injections = await this.getInjections();
     const now = new Date();
     
     const sites: InjectionSite[] = [
@@ -110,12 +176,21 @@ class InjectionService {
   }
 
   // Get sites that were used too recently
-  getSiteRotationWarnings(): InjectionSite[] {
-    return this.getInjectionSites().filter(site => !site.isAvailable);
+  async getSiteRotationWarnings(): Promise<InjectionSite[]> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getSiteRotationWarnings();
+    }
+    
+    const sites = await this.getInjectionSites();
+    return sites.filter(site => !site.isAvailable);
   }
 
   // Get current dose schedule
-  getDoseSchedule(): DoseSchedule | null {
+  async getDoseSchedule(): Promise<DoseSchedule | null> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getDoseSchedule();
+    }
+    
     if (typeof window === 'undefined') return null;
     
     const stored = localStorage.getItem(this.DOSE_SCHEDULE_KEY);
@@ -130,13 +205,21 @@ class InjectionService {
   }
 
   // Save dose schedule
-  saveDoseSchedule(schedule: DoseSchedule): void {
+  async saveDoseSchedule(schedule: DoseSchedule): Promise<void> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.saveDoseSchedule(schedule);
+    }
+    
     localStorage.setItem(this.DOSE_SCHEDULE_KEY, JSON.stringify(schedule));
   }
 
   // Check if dose escalation is available
-  canEscalateDose(): boolean {
-    const schedule = this.getDoseSchedule();
+  async canEscalateDose(): Promise<boolean> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.canEscalateDose();
+    }
+    
+    const schedule = await this.getDoseSchedule();
     if (!schedule || !schedule.nextEscalationDate) return false;
     
     const now = new Date();
@@ -144,8 +227,12 @@ class InjectionService {
   }
 
   // Get injection history for a specific period
-  getInjectionHistory(days: number = 30): Injection[] {
-    const injections = this.getInjections();
+  async getInjectionHistory(days: number = 30): Promise<Injection[]> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getInjectionHistory(days);
+    }
+    
+    const injections = await this.getInjections();
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - days);
     
@@ -153,8 +240,12 @@ class InjectionService {
   }
 
   // Get injection pattern analysis
-  getInjectionPattern() {
-    const injections = this.getInjectionHistory(30);
+  async getInjectionPattern() {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.getInjectionPattern();
+    }
+    
+    const injections = await this.getInjectionHistory(30);
     
     if (injections.length < 2) {
       return {
@@ -172,8 +263,9 @@ class InjectionService {
     }
     
     const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    const expectedInterval = this.getDoseSchedule()?.medication === 'saxenda' || 
-                            this.getDoseSchedule()?.medication === 'victoza' ? 1 : 7;
+    const schedule = await this.getDoseSchedule();
+    const expectedInterval = schedule?.medication === 'saxenda' || 
+                            schedule?.medication === 'victoza' ? 1 : 7;
     
     // Calculate consistency
     const variance = intervals.reduce((sum, interval) => {
@@ -198,14 +290,22 @@ class InjectionService {
   }
 
   // Delete an injection
-  deleteInjection(id: string): void {
-    const injections = this.getInjections();
+  async deleteInjection(id: string): Promise<void> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.deleteInjection(id);
+    }
+    
+    const injections = await this.getInjections();
     const filtered = injections.filter(inj => inj.id !== id);
     localStorage.setItem(this.STORAGE_KEY, JSON.stringify(filtered));
   }
 
   // Clear all injection data (for testing or user reset)
-  clearAllData(): void {
+  async clearAllData(): Promise<void> {
+    if (this.useFirestore && this.currentUserId) {
+      return await firestoreInjectionService.clearAllData();
+    }
+    
     localStorage.removeItem(this.STORAGE_KEY);
     localStorage.removeItem(this.DOSE_SCHEDULE_KEY);
   }

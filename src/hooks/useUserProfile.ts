@@ -12,6 +12,9 @@ export interface UserProfile {
   calculatorComplete?: boolean;
   educationSeen?: boolean;
   proteinGuideViewed?: boolean;
+  onboardingCompleted?: boolean;
+  onboardingSkipped?: boolean;
+  onboardingCompletedAt?: string;
 }
 
 export function useUserProfile() {
