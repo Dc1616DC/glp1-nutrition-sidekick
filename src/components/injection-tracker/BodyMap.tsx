@@ -14,7 +14,17 @@ export default function BodyMap({ selectedSite, onSelectSite }: BodyMapProps) {
   const [sites, setSites] = useState<InjectionSite[]>([]);
 
   useEffect(() => {
-    setSites(injectionService.getInjectionSites());
+    const loadSites = async () => {
+      try {
+        const injectionSites = await injectionService.getInjectionSites();
+        setSites(injectionSites);
+      } catch (error) {
+        console.error('Error loading injection sites:', error);
+        setSites([]);
+      }
+    };
+    
+    loadSites();
   }, []);
 
   const getSiteStyle = (site: InjectionSite) => {
