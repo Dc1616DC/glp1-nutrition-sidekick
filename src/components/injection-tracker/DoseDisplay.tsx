@@ -13,33 +13,47 @@ export default function DoseDisplay() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const schedule = injectionService.getDoseSchedule();
-    setDoseSchedule(schedule);
-    
-    if (schedule) {
-      setCanEscalate(injectionService.canEscalateDose());
+  const loadData = async () => {
+    try {
+      const schedule = await injectionService.getDoseSchedule();
+      setDoseSchedule(schedule);
+      
+      if (schedule) {
+        setCanEscalate(await injectionService.canEscalateDose());
+      }
+      
+      setPattern(await injectionService.getInjectionPattern());
+    } catch (error) {
+      console.error('Error loading dose data:', error);
     }
-    
-    setPattern(injectionService.getInjectionPattern());
   };
 
-  const handleUpdateDose = (newDose: number) => {
+  const handleUpdateDose = async (newDose: number) => {
     if (!doseSchedule) return;
     
     const medicationInfo = MEDICATION_INFO[doseSchedule.medication];
+    if (!medicationInfo) {
+      console.error('Medication info not found for:', doseSchedule.medication);
+      return;
+    }
+    
     const nextEscalation = new Date();
     nextEscalation.setDate(nextEscalation.getDate() + 28); // 4 weeks minimum
     
-    injectionService.saveDoseSchedule({
-      ...doseSchedule,
-      dose: newDose,
-      startDate: new Date(),
-      nextEscalationDate: nextEscalation
-    });
-    
-    loadData();
-    alert(`Dose updated to ${newDose}${medicationInfo.unit} as prescribed by your healthcare provider.`);
+    try {
+      await injectionService.saveDoseSchedule({
+        ...doseSchedule,
+        dose: newDose,
+        startDate: new Date(),
+        nextEscalationDate: nextEscalation
+      });
+      
+      await loadData();
+      alert(`Dose updated to ${newDose}${medicationInfo.unit} as prescribed by your healthcare provider.`);
+    } catch (error) {
+      console.error('Error updating dose:', error);
+      alert('Failed to update dose. Please try again.');
+    }
   };
 
   if (!doseSchedule) {
@@ -54,6 +68,17 @@ export default function DoseDisplay() {
   }
 
   const medicationInfo = MEDICATION_INFO[doseSchedule.medication];
+  if (!medicationInfo) {
+    return (
+      <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+        <h3 className="font-semibold text-gray-900 mb-2">Dose Information</h3>
+        <p className="text-sm text-yellow-800">
+          Unknown medication type: {doseSchedule.medication}. Please log a new injection to update.
+        </p>
+      </div>
+    );
+  }
+  
   const currentDoseIndex = medicationInfo.doses.indexOf(doseSchedule.dose);
   const isMaxDose = currentDoseIndex === medicationInfo.doses.length - 1;
   const nextDose = !isMaxDose ? medicationInfo.doses[currentDoseIndex + 1] : null;

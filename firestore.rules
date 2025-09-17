@@ -15,7 +15,10 @@ service cloud.firestore {
     function isValidUserProfile(data) {
       return data.keys().hasOnly(['uid', 'email', 'tdee', 'targetCalories', 'proteinGoal', 
                                  'dietaryRestrictions', 'mealPreferences', 'notificationSettings', 'fcmTokens',
-                                 'medication', 'experience', 'primaryConcerns', 'calculatorComplete', 'educationSeen', 'proteinGuideViewed']) &&
+                                 'medication', 'experience', 'primaryConcerns', 'calculatorComplete', 'educationSeen', 
+                                 'proteinGuideViewed', 'onboardingCompleted', 'onboardingSkipped', 'onboardingCompletedAt',
+                                 'nutritionOnboardingSeen', 'migrationCompleted', 'migrationDate', 'userId',
+                                 'migratedItems', 'errors', 'updatedAt', 'eveningToolkit']) &&
              (!('uid' in data) || data.uid is string) &&
              (!('email' in data) || data.email is string) &&
              (!('tdee' in data) || data.tdee is number) &&
@@ -28,7 +31,11 @@ service cloud.firestore {
              (!('primaryConcerns' in data) || data.primaryConcerns is list) &&
              (!('calculatorComplete' in data) || data.calculatorComplete is bool) &&
              (!('educationSeen' in data) || data.educationSeen is bool) &&
-             (!('proteinGuideViewed' in data) || data.proteinGuideViewed is bool);
+             (!('proteinGuideViewed' in data) || data.proteinGuideViewed is bool) &&
+             (!('onboardingCompleted' in data) || data.onboardingCompleted is bool) &&
+             (!('onboardingSkipped' in data) || data.onboardingSkipped is bool) &&
+             (!('onboardingCompletedAt' in data) || data.onboardingCompletedAt is string) &&
+             (!('nutritionOnboardingSeen' in data) || data.nutritionOnboardingSeen is bool);
     }
     
     // User profiles - users can only read and write their own data

@@ -49,8 +49,8 @@ export class InjectionSymptomCorrelationService {
    */
   async analyzeInjectionSymptomCorrelations(userId: string): Promise<InjectionSymptomCorrelationInsights> {
     try {
-      // Get injection data from local storage
-      const injections = injectionService.getInjections();
+      // Get injection data - now async
+      const injections = await injectionService.getInjections();
       
       // Use adaptive analytics for more relevant data
       const weightedSymptoms = await adaptiveAnalyticsService.getRelevantSymptomData(userId);
@@ -67,7 +67,7 @@ export class InjectionSymptomCorrelationService {
         userId
       }));
       
-      if (injections.length < 2 || symptoms.length < 3) {
+      if (!injections || injections.length < 2 || !symptoms || symptoms.length < 3) {
         return this.getInsufficientDataInsights();
       }
       

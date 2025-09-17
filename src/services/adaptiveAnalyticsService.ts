@@ -175,7 +175,7 @@ export class AdaptiveAnalyticsService {
    */
   async generateAdaptiveInsights(userId: string): Promise<AdaptiveInsight[]> {
     const weightedSymptoms = await this.getRelevantSymptomData(userId);
-    const injections = injectionService.getInjections();
+    const injections = await injectionService.getInjections();
     
     if (weightedSymptoms.length < 3 || injections.length < 2) {
       return [{
