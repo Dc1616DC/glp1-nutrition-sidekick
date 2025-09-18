@@ -54,11 +54,21 @@ class FirestoreInjectionService {
     
     try {
       const injectionRef = doc(db, 'userInjections', this.userId, 'injections', newInjection.id);
-      await setDoc(injectionRef, {
+      // Clean the data to remove undefined values
+      const cleanedData = {
         ...newInjection,
         timestamp: Timestamp.fromDate(newInjection.timestamp),
         userId: this.userId
+      };
+      
+      // Remove undefined fields as Firestore doesn't accept them
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === undefined) {
+          delete cleanedData[key];
+        }
       });
+      
+      await setDoc(injectionRef, cleanedData);
       
       return newInjection;
     } catch (error) {
