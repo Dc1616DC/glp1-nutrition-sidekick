@@ -19,16 +19,22 @@ interface EnhancementResult {
 }
 
 export class AIEnhancementService {
-  private openai: OpenAI;
+  private _openai: OpenAI | null = null;
   private lastRequestTime: number = 0;
   private readonly REQUEST_DELAY = 3000; // 3 seconds minimum between requests
   private requestCount: number = 0;
 
-  constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-      timeout: 60000, // 60 second timeout
-    });
+  /**
+   * Lazy-load OpenAI client to avoid build-time instantiation
+   */
+  private get openai(): OpenAI {
+    if (!this._openai) {
+      this._openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY || '',
+        timeout: 60000, // 60 second timeout
+      });
+    }
+    return this._openai;
   }
 
   private async rateLimitDelay(): Promise<void> {

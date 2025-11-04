@@ -41,16 +41,17 @@ import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
  */
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'placeholder',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'placeholder.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'placeholder',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'placeholder.appspot.com',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:123456789:web:placeholder',
 };
 
 // Initialize Firebase
 // We add a check to see if the app is already initialized to prevent errors in Next.js's hot-reloading environment.
+// Use placeholder values for build time to avoid initialization errors
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Initialize Firebase Authentication, Firestore, and Functions
@@ -59,7 +60,7 @@ const db = getFirestore(app);
 const functions = getFunctions(app);
 
 // Connect to Firebase Functions emulator in development
-if (process.env.NODE_ENV === 'development') {
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   try {
     connectFunctionsEmulator(functions, 'localhost', 5001);
     console.log('🔧 Connected to Firebase Functions emulator');

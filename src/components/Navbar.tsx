@@ -16,9 +16,10 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Check if user has completed onboarding (has set calculator goals)
-    const onboardingComplete = localStorage.getItem('onboardingComplete');
-    setHasCompletedOnboarding(!!onboardingComplete);
+    // Check if user has completed onboarding (has seen nutrition onboarding or completed calculator)
+    const nutritionSeen = localStorage.getItem('nutritionOnboardingSeen');
+    const calculatorComplete = localStorage.getItem('calculatorComplete');
+    setHasCompletedOnboarding(!!(nutritionSeen || calculatorComplete));
   }, [pathname]); // Re-check when navigating
 
   const handleSignOut = async () => {

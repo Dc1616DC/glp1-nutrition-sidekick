@@ -3,11 +3,6 @@ import { Recipe, MealPreferences } from '../types/recipe';
 import { MealType, CreativityLevel, DifficultyLevel } from '../types/meal';
 import { NutritionInfo } from '../types/common';
 
-const grok = new OpenAI({
-  apiKey: process.env.GROK_API_KEY!,
-  baseURL: 'https://api.x.ai/v1',
-});
-
 interface CalorieRange {
   min: number;
   max: number;
@@ -55,6 +50,21 @@ interface GrokRecipeResponse {
 }
 
 export class GrokService {
+  private _grok: OpenAI | null = null;
+
+  /**
+   * Lazy-load the Grok client to avoid build-time instantiation
+   */
+  private get grok(): OpenAI {
+    if (!this._grok) {
+      this._grok = new OpenAI({
+        apiKey: process.env.GROK_API_KEY || '',
+        baseURL: 'https://api.x.ai/v1',
+      });
+    }
+    return this._grok;
+  }
+
   /**
    * Generate GLP-1 optimized recipes using Grok AI with chef-inspired names and appeal
    */

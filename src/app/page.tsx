@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useUserProfile } from '../hooks/useUserProfile';
 import NutritionOnboarding from '../components/NutritionOnboarding';
@@ -21,6 +22,7 @@ import { subscriptionService } from '../services/subscriptionService';
 import { getWeeklyTip } from '../data/weeklyTips';
 
 export default function Dashboard() {
+  const router = useRouter();
   const { user, loading } = useAuth();
   const { profile, getMedicationInfo, isNewUser, isStruggling, hasNauseaConcern } = useUserProfile();
   const [showNutritionOnboarding, setShowNutritionOnboarding] = useState(false);
@@ -53,7 +55,7 @@ export default function Dashboard() {
       if (!hasCompletedOnboarding && !hasSeenOnboarding) {
         console.log('Redirecting to getting-started - truly incomplete onboarding');
         setTimeout(() => {
-          window.location.href = '/getting-started';
+          router.push('/getting-started');
         }, 1000);
         return;
       }

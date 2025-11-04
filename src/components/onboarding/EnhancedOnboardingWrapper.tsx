@@ -21,12 +21,18 @@ export default function EnhancedOnboardingWrapper({ children }: Props) {
   const [selectedMedication, setSelectedMedication] = useState<string>('');
 
   useEffect(() => {
-    // Check if user has completed onboarding (client-side only)
+    // Check if user has completed onboarding (sync with main onboarding system)
     try {
+      // Check the main onboarding flags used by the dashboard
+      const nutritionOnboardingSeen = localStorage.getItem('nutritionOnboardingSeen');
+      const calculatorComplete = localStorage.getItem('calculatorComplete');
+
+      // Also check the old enhanced onboarding flags for backward compatibility
       const hasCompletedOnboarding = localStorage.getItem('glp1-enhanced-onboarding-completed');
       const hasSkippedOnboarding = localStorage.getItem('glp1-onboarding-skipped');
-      
-      if (hasCompletedOnboarding || hasSkippedOnboarding) {
+
+      // Skip enhanced onboarding if main onboarding has been started/completed
+      if (hasCompletedOnboarding || hasSkippedOnboarding || nutritionOnboardingSeen || calculatorComplete) {
         setCurrentPhase('complete');
       } else {
         setCurrentPhase('welcome');
@@ -60,6 +66,8 @@ export default function EnhancedOnboardingWrapper({ children }: Props) {
   const handleFinalComplete = () => {
     try {
       localStorage.setItem('glp1-enhanced-onboarding-completed', 'true');
+      // Sync with main onboarding system
+      localStorage.setItem('nutritionOnboardingSeen', 'true');
       // Store user profile for personalization
       if (userProfile) {
         localStorage.setItem('glp1-user-profile', JSON.stringify(userProfile));
@@ -76,6 +84,8 @@ export default function EnhancedOnboardingWrapper({ children }: Props) {
     try {
       localStorage.setItem('glp1-onboarding-skipped', 'true');
       localStorage.setItem('glp1-enhanced-onboarding-completed', 'true');
+      // Sync with main onboarding system
+      localStorage.setItem('nutritionOnboardingSeen', 'true');
     } catch (error) {
       console.log('Failed to save onboarding skip status');
     }

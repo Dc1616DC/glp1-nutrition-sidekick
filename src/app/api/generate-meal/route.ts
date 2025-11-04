@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { nutritionService } from '../../../services/nutritionService';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy-load OpenAI client to avoid build-time instantiation
+let openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
+  }
+  return openai;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,8 +19,8 @@ export async function POST(request: NextRequest) {
     
     // Create a detailed prompt for OpenAI
     const prompt = createMealPrompt(preferences, previousMeals);
-    
-    const completion = await openai.chat.completions.create({
+
+    const completion = await getOpenAI().chat.completions.create({
       model: "gpt-4",
       messages: [
         {
