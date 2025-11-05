@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import { Injection, DoseSchedule, InjectionSite } from '@/types/injection';
+import { cleanFirestoreData, validateRequiredFields } from '@/utils/firestoreUtils';
 
 class FirestoreInjectionService {
   private readonly SITE_ROTATION_DAYS = 14; // FDA recommends 2 week rotation
@@ -53,22 +54,24 @@ class FirestoreInjectionService {
     };
     
     try {
+      // Validate required fields
+      const requiredFields = ['timestamp', 'site', 'dose', 'medication'];
+      if (!validateRequiredFields(newInjection, requiredFields)) {
+        throw new Error('Missing required injection fields');
+      }
+      
       const injectionRef = doc(db, 'userInjections', this.userId, 'injections', newInjection.id);
-      // Clean the data to remove undefined values
-      const cleanedData = {
+      
+      // Prepare data for Firestore with proper cleaning
+      const firestoreData = cleanFirestoreData({
         ...newInjection,
         timestamp: Timestamp.fromDate(newInjection.timestamp),
-        userId: this.userId
-      };
-      
-      // Remove undefined fields as Firestore doesn't accept them
-      Object.keys(cleanedData).forEach(key => {
-        if (cleanedData[key] === undefined) {
-          delete cleanedData[key];
-        }
+        userId: this.userId,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
       });
       
-      await setDoc(injectionRef, cleanedData);
+      await setDoc(injectionRef, firestoreData);
       
       return newInjection;
     } catch (error) {

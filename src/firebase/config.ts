@@ -56,9 +56,13 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 // Initialize Firebase Authentication, Firestore, and Functions
 const auth = getAuth(app);
 const db = getFirestore(app);
-const functions = getFunctions(app);
+// Specify the region for Functions (must match the region in your Firebase Functions)
+const functions = getFunctions(app, 'us-central1');
 
 // Connect to Firebase Functions emulator in development
+// Commenting out emulator to use production functions with real Grok API
+// Uncomment this block if you want to use the local emulator instead
+/*
 if (process.env.NODE_ENV === 'development') {
   try {
     connectFunctionsEmulator(functions, 'localhost', 5001);
@@ -68,5 +72,7 @@ if (process.env.NODE_ENV === 'development') {
     console.log('Firebase Functions emulator connection status:', error);
   }
 }
+*/
+console.log('🚀 Using production Firebase Functions with Grok AI');
 
 export { app, auth, db, functions };

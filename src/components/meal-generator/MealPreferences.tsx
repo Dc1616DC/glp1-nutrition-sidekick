@@ -7,9 +7,10 @@ import { MealPreferences as MealPreferencesType } from '../../types/meal';
 interface MealPreferencesProps {
   preferences: MealPreferencesType;
   setPreferences: (preferences: MealPreferencesType) => void;
-  onGenerate: () => void;
   onClearHistory: () => void;
   isGenerating: boolean;
+  onGetAISuggestion?: () => void;
+  isGettingAISuggestion?: boolean;
 }
 
 const dietaryOptions = [
@@ -20,9 +21,10 @@ const dietaryOptions = [
 export default function MealPreferences({ 
   preferences, 
   setPreferences, 
-  onGenerate, 
   onClearHistory,
-  isGenerating 
+  isGenerating,
+  onGetAISuggestion,
+  isGettingAISuggestion = false
 }: MealPreferencesProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -228,34 +230,48 @@ export default function MealPreferences({
         </div>
       </div>
 
-      {/* Generate Button */}
-      <div className="mt-6 flex gap-4 items-center">
-        <button 
-          onClick={onGenerate}
-          disabled={isGenerating}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
-        >
-          {isGenerating ? (
-            <>
-              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Generating...
-            </>
-          ) : (
-            <>
-              🍽️ Generate Meals
-            </>
-          )}
-        </button>
+      {/* Generate Buttons */}
+      <div className="mt-6 space-y-4">
+        {/* AI Suggestion Button - Now the primary button */}
+        {onGetAISuggestion && (
+          <div>
+            <div className="flex gap-4 items-center">
+              <button
+                onClick={onGetAISuggestion}
+                disabled={isGettingAISuggestion || isGenerating}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+              >
+                {isGettingAISuggestion ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Getting AI Suggestions...
+                  </>
+                ) : (
+                  <>
+                    <span className="text-lg">🤖</span>
+                    Generate AI Meals
+                    <span className="bg-white/20 text-xs px-2 py-1 rounded-full font-bold">
+                      PRO
+                    </span>
+                  </>
+                )}
+              </button>
 
-        <button 
-          onClick={onClearHistory}
-          className="text-gray-600 hover:text-gray-900 text-sm font-medium"
-        >
-          Clear History
-        </button>
+              <button 
+                onClick={onClearHistory}
+                className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+              >
+                Clear History
+              </button>
+            </div>
+            <p className="text-xs text-gray-600 mt-2 text-center">
+              Personalized meal suggestions from our AI nutritionist based on your preferences
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

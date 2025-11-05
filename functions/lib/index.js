@@ -1,7 +1,7 @@
 "use strict";
 /**
  * Firebase Cloud Functions for GLP-1 Nutrition Sidekick
- * Handles server-side notification scheduling and sending
+ * Handles server-side notification scheduling, sending, and AI-powered insights
  */
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
@@ -37,7 +37,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sendImmediateNotification = exports.setupMealReminders = exports.scheduleNotification = exports.processScheduledNotifications = void 0;
+exports.sendImmediateNotification = exports.setupMealReminders = exports.scheduleNotification = exports.processScheduledNotifications = exports.getMealSuggestion = exports.getSymptomInsight = void 0;
+// Export Grok AI functions for symptom insights and meal suggestions
+var grokInsights_1 = require("./grokInsights");
+Object.defineProperty(exports, "getSymptomInsight", { enumerable: true, get: function () { return grokInsights_1.getSymptomInsight; } });
+Object.defineProperty(exports, "getMealSuggestion", { enumerable: true, get: function () { return grokInsights_1.getMealSuggestion; } });
 const admin = __importStar(require("firebase-admin"));
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const https_1 = require("firebase-functions/v2/https");

@@ -1,7 +1,10 @@
 /**
  * Firebase Cloud Functions for GLP-1 Nutrition Sidekick
- * Handles server-side notification scheduling and sending
+ * Handles server-side notification scheduling, sending, and AI-powered insights
  */
+
+// Export Grok AI functions for symptom insights and meal suggestions
+export { getSymptomInsight, getMealSuggestion } from './grokInsights';
 
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';

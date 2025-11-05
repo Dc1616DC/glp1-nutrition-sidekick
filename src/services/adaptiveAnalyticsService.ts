@@ -29,6 +29,15 @@ export class AdaptiveAnalyticsService {
     try {
       // Get user's injection history
       const injections = injectionService.getInjections();
+      
+      // Handle case where user has no injection history
+      if (!injections || injections.length === 0) {
+        console.log('No injection history found - using default analysis window');
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - 14); // Default 14-day window
+        return this.getSymptomDataWithWindow(userId, cutoffDate);
+      }
+      
       const currentDose = injections[0]?.dose || 0;
       const currentMedication = injections[0]?.medication || '';
       
@@ -50,12 +59,15 @@ export class AdaptiveAnalyticsService {
       
       snapshot.forEach(doc => {
         const data = doc.data();
-        rawSymptoms.push({
-          symptom: data.symptom,
-          severity: data.severity,
-          timestamp: data.timestamp.toDate(),
-          originalData: data
-        });
+        // Add null checks to prevent errors
+        if (data.timestamp && data.symptom && data.severity !== undefined) {
+          rawSymptoms.push({
+            symptom: data.symptom,
+            severity: data.severity,
+            timestamp: data.timestamp.toDate(),
+            originalData: data
+          });
+        }
       });
       
       // Apply weighting based on recency and contextual relevance

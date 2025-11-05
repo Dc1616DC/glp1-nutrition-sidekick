@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { injectionSymptomCorrelationService } from '@/services/injectionSymptomCorrelationService';
+import { grokService } from '@/services/grokService';
 
 interface InjectionCorrelationInsights {
   patterns: any[];
@@ -21,6 +22,9 @@ export default function InjectionSymptomInsights() {
   const [insights, setInsights] = useState<InjectionCorrelationInsights | null>(null);
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
+  const [showProFeatures, setShowProFeatures] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -39,6 +43,41 @@ export default function InjectionSymptomInsights() {
       console.error('Error loading insights:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getAIInsights = async () => {
+    if (!user || !insights || insights.patterns.length === 0) return;
+    
+    setLoadingAI(true);
+    try {
+      // Extract current symptoms from patterns
+      const currentSymptoms = insights.patterns
+        .filter(p => p.confidence === 'high' || p.confidence === 'medium')
+        .map(p => p.symptom)
+        .slice(0, 3); // Limit to top 3 symptoms
+
+      if (currentSymptoms.length === 0) {
+        setAiInsight("Keep tracking your symptoms to unlock personalized AI insights!");
+        return;
+      }
+
+      // Get user profile data (you may need to fetch this from user profile)
+      const response = await grokService.getPersonalizedSymptomInsight(
+        currentSymptoms,
+        'Semaglutide', // Default - could be fetched from user profile
+        {
+          experience: 'experienced', // Could be from user profile
+          primaryConcerns: ['nausea', 'appetite_changes'] // Could be from symptoms
+        }
+      );
+
+      setAiInsight(response.insight);
+    } catch (error) {
+      console.error('Error getting AI insights:', error);
+      setAiInsight("AI insights temporarily unavailable. Your correlation patterns above provide valuable data-driven insights!");
+    } finally {
+      setLoadingAI(false);
     }
   };
 
@@ -162,6 +201,64 @@ export default function InjectionSymptomInsights() {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+
+            {/* Pro AI Insights */}
+            {showProFeatures && insights.patterns.length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-purple-900 flex items-center gap-2">
+                    🤖 AI-Powered Symptom Guidance
+                    <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                      PRO
+                    </span>
+                  </h4>
+                  {!aiInsight && (
+                    <button
+                      onClick={getAIInsights}
+                      disabled={loadingAI}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white text-sm rounded-lg font-medium transition-colors"
+                    >
+                      {loadingAI ? 'Analyzing...' : 'Get AI Insights'}
+                    </button>
+                  )}
+                </div>
+                
+                {loadingAI && (
+                  <div className="flex items-center gap-2 text-purple-700">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    <span className="text-sm">Generating personalized guidance with Grok AI...</span>
+                  </div>
+                )}
+                
+                {aiInsight && (
+                  <div className="bg-white rounded-lg p-3 border border-purple-200">
+                    <div className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                      {aiInsight}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-purple-100 flex items-center justify-between">
+                      <span className="text-xs text-purple-600">
+                        Powered by Grok AI • Registered Dietitian Supervised
+                      </span>
+                      <button
+                        onClick={() => setAiInsight(null)}
+                        className="text-xs text-purple-600 hover:text-purple-800 underline"
+                      >
+                        Get New Insights
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {!aiInsight && !loadingAI && (
+                  <div className="text-sm text-purple-800">
+                    Get personalized nutritional guidance from our AI dietitian based on your symptom patterns.
+                    <div className="mt-2 text-xs text-purple-600">
+                      ✨ Includes meal timing tips, gentle nutrition strategies, and GLP-1-specific advice
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

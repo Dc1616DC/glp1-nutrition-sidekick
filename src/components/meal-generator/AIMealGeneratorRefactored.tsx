@@ -20,6 +20,7 @@ import { MealPreferences as MealPreferencesType, GeneratedMeal } from '../../typ
 import { clientNutritionService } from '../../services/clientNutritionService';
 import { savedMealsService } from '../../services/savedMealsService';
 import { shoppingListService } from '../../services/shoppingListService';
+import { grokService } from '../../services/grokService';
 
 // Constants for symptom labels
 const SYMPTOM_LABELS: { [key: string]: { label: string } } = {
@@ -74,6 +75,8 @@ export default function AIMealGeneratorRefactored({ suggestedMeal, symptom }: AI
   const [showInsightModal, setShowInsightModal] = useState<string | null>(null);
   const [showEnhancedEducation, setShowEnhancedEducation] = useState<{ show: boolean; category?: string }>({ show: false });
   const [hasGeneratedSymptomMeal, setHasGeneratedSymptomMeal] = useState(false);
+  const [isGettingAISuggestion, setIsGettingAISuggestion] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
 
   // Handle suggested meal from symptom recommendations
   useEffect(() => {
@@ -84,77 +87,63 @@ export default function AIMealGeneratorRefactored({ suggestedMeal, symptom }: AI
     }
   }, [suggestedMeal, user, isOnline, hasGeneratedSymptomMeal]);
 
-  // Generate symptom-based meal
+  // Generate symptom-based meal using AI
   const generateSymptomBasedMeal = async () => {
     if (!suggestedMeal) return;
     
-    setIsGenerating(true);
-    
+    setIsGettingAISuggestion(true);
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (user) {
-        try {
-          const token = await user.getIdToken();
-          headers['Authorization'] = `Bearer ${token}`;
-        } catch (tokenError) {
-          console.warn('Failed to get ID token, using UID as fallback:', tokenError);
-          headers['Authorization'] = `Bearer ${user.uid}`;
+      // Use AI to generate symptom-optimized meal
+      const response = await grokService.getPersonalizedMealSuggestionFromAI(
+        'Semaglutide',
+        {
+          symptoms: symptom ? [symptom] : [],
+          dietaryRestrictions: preferences.dietaryRestrictions,
+          preferences: [`specific meal: ${suggestedMeal}`],
+          experience: 'experienced'
         }
-      }
-      
-      // Create preferences optimized for the symptom
-      const symptomOptimizedPrefs = {
-        ...preferences,
-        specificMealRequest: suggestedMeal,
-        symptomOptimization: symptom || undefined,
-        creativityLevel: 'simple' as const
-      };
-      
-      const response = await fetch('/api/generate-meal-options-new', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          preferences: symptomOptimizedPrefs,
-          previousMeals: [],
-          symptomOptimized: true
-        }),
-      });
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to generate meal');
-      }
-
-      const data = await response.json();
+      setAiSuggestion(response.suggestions);
+      setActiveTab('generator');
       
-      if (data.meals && data.meals.length > 0) {
-        setGeneratedMeals(data.meals);
-        setSelectedMealIndex(0);
-        setSymptomOptimized(true);
-        
-        // Access nutrition data from the correct property
-        const firstMeal = data.meals[0];
-        if (firstMeal.nutritionTotals) {
-          setShowNudge({
-            type: null,
-            mealData: {
-              protein: firstMeal.nutritionTotals.protein || 0,
-              fiber: firstMeal.nutritionTotals.fiber || 0,
-              calories: firstMeal.nutritionTotals.calories || 0
-            }
-          });
-        }
-        
-      } else {
-        console.warn('No meals returned from API:', data);
-      }
     } catch (error) {
       console.error('Error generating symptom-based meal:', error);
       alert('Failed to generate the suggested meal. Please try again.');
     } finally {
-      setIsGenerating(false);
+      setIsGettingAISuggestion(false);
+    }
+  };
+
+  // Get AI meal suggestions
+  const getAISuggestion = async () => {
+    if (!user) {
+      alert('Please sign in to get AI suggestions');
+      return;
+    }
+
+    setIsGettingAISuggestion(true);
+    try {
+      // Get meal suggestion from Firebase Functions
+      const response = await grokService.getPersonalizedMealSuggestionFromAI(
+        'Semaglutide', // Could be fetched from user profile
+        {
+          dietaryRestrictions: preferences.dietaryRestrictions,
+          preferences: preferences.cuisinePreferences || [],
+          experience: 'experienced' // Could be from user profile
+        }
+      );
+
+      setAiSuggestion(response.suggestions);
+      
+      // Switch to the appropriate tab or scroll to show the suggestion
+      setActiveTab('generator');
+      
+    } catch (error) {
+      console.error('Error getting AI meal suggestion:', error);
+      alert('Failed to get AI suggestions. Please try again.');
+    } finally {
+      setIsGettingAISuggestion(false);
     }
   };
 
@@ -165,128 +154,6 @@ export default function AIMealGeneratorRefactored({ suggestedMeal, symptom }: AI
     setSelectedMealIndex(0);
   };
 
-  // Generate meals
-  const generateMeal = async () => {
-    // Check if user is online before attempting to generate
-    if (!isOnline) {
-      alert('Please connect to the internet to generate meals. You can browse the Recipe Library offline.');
-      return;
-    }
-    
-    setIsGenerating(true);
-    
-    try {
-      // Get auth token for symptom-based meal optimization
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (user) {
-        try {
-          // Get Firebase ID token for proper authentication
-          const token = await user.getIdToken();
-          headers['Authorization'] = `Bearer ${token}`;
-        } catch (tokenError) {
-          // Fallback to UID for development if getIdToken fails
-          console.warn('Failed to get ID token, using UID as fallback:', tokenError);
-          headers['Authorization'] = `Bearer ${user.uid}`;
-        }
-      } else {
-        console.error('❌ No authenticated user found');
-        throw new Error('Please sign in to generate meals.');
-      }
-      
-      const response = await fetch('/api/generate-meal-options-new', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          mealType: preferences.mealType,
-          dietaryRestrictions: preferences.dietaryRestrictions,
-          allergies: preferences.allergies,
-          numOptions: 2,
-          maxCookingTime: preferences.maxCookingTime,
-          proteinTarget: preferences.minProtein || 20,
-          fiberTarget: preferences.minFiber || 4,
-          calorieRange: { 
-            min: 400, 
-            max: preferences.maxCalories || 600 
-          },
-          creativityLevel: preferences.creativityLevel,
-          assemblyToRecipeRatio: preferences.assemblyToRecipeRatio,
-        }),
-      });
-
-      if (!response.ok) {
-        // Try to get error details from response
-        try {
-          const errorData = await response.json();
-          console.error('API Error:', errorData);
-          throw new Error(errorData.message || errorData.error || `Server error: ${response.status}`);
-        } catch (parseError) {
-          console.error('Failed to parse error response:', parseError);
-          throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        }
-      }
-
-      const data = await response.json();
-      
-      if (!data.success) {
-        console.error('API returned error:', data);
-        throw new Error(data.message || data.error || 'Failed to generate meals');
-      }
-      
-      // Handle multiple meals response from new hybrid system
-      const meals = data.meals || [];
-      
-      // Add source indicator and disclaimer
-      meals.forEach((meal: GeneratedMeal) => {
-        meal.nutritionSource = data.source === 'grok-estimates' ? 'Grok AI Estimates*' : 
-                              data.source === 'curated' ? 'Curated Recipes' : 'AI Generated';
-      });
-
-      setGeneratedMeals(meals);
-      setSelectedMealIndex(0);
-      setSymptomOptimized(data.symptomOptimized || false);
-
-      // Check nutrition and trigger nudges
-      if (meals.length > 0) {
-        const meal = meals[0];
-        const nutrition = meal.nutrition || meal.nutritionTotals;
-        
-        if (nutrition) {
-          if (nutrition.protein < 15) {
-            setShowNudge({
-              type: 'lowProtein',
-              mealData: {
-                protein: nutrition.protein,
-                fiber: nutrition.fiber,
-                calories: nutrition.calories
-              }
-            });
-          } else if (nutrition.fiber < 3) {
-            setShowNudge({
-              type: 'lowFiber', 
-              mealData: {
-                protein: nutrition.protein,
-                fiber: nutrition.fiber,
-                calories: nutrition.calories
-              }
-            });
-          }
-        }
-
-        // Add meal names to previous meals to avoid repetition
-        const mealNames = meals.map(m => m.name || m.title || '').filter(Boolean);
-        setPreviousMeals(prev => [...prev, ...mealNames]);
-      }
-      
-    } catch (error) {
-      console.error('Error generating meals:', error);
-      alert(error instanceof Error ? error.message : 'Failed to generate meals. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   // Save meal
   // Helper function to remove undefined values from objects (Firebase doesn't allow them)
@@ -563,10 +430,40 @@ export default function AIMealGeneratorRefactored({ suggestedMeal, symptom }: AI
           <MealPreferences
             preferences={preferences}
             setPreferences={setPreferences}
-            onGenerate={generateMeal}
             onClearHistory={clearHistory}
             isGenerating={isGenerating}
+            onGetAISuggestion={getAISuggestion}
+            isGettingAISuggestion={isGettingAISuggestion}
           />
+
+          {/* AI Suggestion Display */}
+          {aiSuggestion && (
+            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl">🤖</span>
+                <h3 className="text-lg font-semibold text-purple-900">AI Meal Suggestions</h3>
+                <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                  PRO
+                </span>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-purple-200">
+                <div className="text-gray-800 leading-relaxed whitespace-pre-line text-sm">
+                  {aiSuggestion}
+                </div>
+                <div className="mt-4 pt-4 border-t border-purple-100 flex items-center justify-between">
+                  <span className="text-xs text-purple-600">
+                    Powered by Grok AI • Registered Dietitian Supervised
+                  </span>
+                  <button
+                    onClick={() => setAiSuggestion(null)}
+                    className="text-xs text-purple-600 hover:text-purple-800 underline"
+                  >
+                    Hide Suggestions
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Show skeleton while generating */}
           {isGenerating && (

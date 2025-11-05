@@ -1,0 +1,13 @@
+# Compiled JavaScript files
+lib/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Node modules
+node_modules/
+
+# Runtime configuration
+.runtimeconfig.json

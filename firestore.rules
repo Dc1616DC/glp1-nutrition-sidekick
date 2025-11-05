@@ -42,8 +42,24 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId);
       allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
-      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data) && 
+                     checkRateLimit(userId);
       allow delete: if isOwner(userId);
+    }
+    
+    // Rate limiting for AI calls (track in user document)
+    function checkRateLimit(userId) {
+      let userDoc = get(/databases/$(database)/documents/users/$(userId));
+      let lastAICall = userDoc.data.lastAICall;
+      let aiCallCount = userDoc.data.aiCallCount;
+      let now = request.time;
+      
+      // Reset counter if it's a new day
+      let isNewDay = lastAICall == null || 
+                     now > lastAICall + duration.value(24, 'h');
+      
+      // Allow if new day or under limit (10 calls per day for free tier)
+      return isNewDay || (aiCallCount != null && aiCallCount < 10);
     }
     
     // User profiles (new collection) - users can only read and write their own data
@@ -183,16 +199,32 @@ service cloud.firestore {
     // User injection tracking data
     match /userInjections/{userId} {
       allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) && request.resource.data.userId == userId;
+      allow create: if isOwner(userId) && 
+                     request.resource.data.userId == userId &&
+                     request.resource.data.keys().hasAll(['userId']) &&
+                     (!('doseSchedule' in request.resource.data) || request.resource.data.doseSchedule is map);
+      allow update: if isOwner(userId) && 
+                     request.resource.data.userId == userId;
       allow delete: if isOwner(userId);
       
-      // Individual injection records
+      // Individual injection records - Relaxed validation
       match /injections/{injectionId} {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId) && 
                         request.resource.data.userId == request.auth.uid &&
-                        request.resource.data.keys().hasAll(['timestamp', 'site', 'dose', 'medication']);
+                        // Required fields
+                        request.resource.data.keys().hasAll(['timestamp', 'site', 'dose', 'medication', 'userId']) &&
+                        // Type validation for required fields
+                        request.resource.data.timestamp is timestamp &&
+                        request.resource.data.site is string &&
+                        request.resource.data.dose is number &&
+                        request.resource.data.medication is string &&
+                        request.resource.data.userId is string &&
+                        // Optional fields with type validation
+                        (!('notes' in request.resource.data) || request.resource.data.notes is string) &&
+                        (!('id' in request.resource.data) || request.resource.data.id is string) &&
+                        (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp) &&
+                        (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp);
         allow update: if isOwner(userId) && 
                         resource.data.userId == request.auth.uid &&
                         request.resource.data.userId == request.auth.uid;
