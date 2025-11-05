@@ -19,6 +19,7 @@ import { mealLoggingService } from '../services/mealLoggingService';
 import { mealCommitmentService } from '../services/mealCommitmentService';
 import { subscriptionService } from '../services/subscriptionService';
 import { getWeeklyTip } from '../data/weeklyTips';
+import NutritionGoalsWidget from '../components/NutritionGoalsWidget';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -337,6 +338,11 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Nutrition Goals Widget */}
+        <div className="mb-8">
+          <NutritionGoalsWidget />
+        </div>
 
         {/* Quick Actions */}
         <div className="mb-8">
