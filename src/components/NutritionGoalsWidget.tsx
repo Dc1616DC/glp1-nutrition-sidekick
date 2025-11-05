@@ -1,13 +1,49 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useUserProfile } from '../hooks/useUserProfile';
+import { useAuth } from '../context/AuthContext';
+import { getUserProfile, UserProfile } from '../firebase/db';
 
 export default function NutritionGoalsWidget() {
-  const { profile } = useUserProfile();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load user profile from the 'users' collection where calculator data is stored
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userProfile = await getUserProfile(user.uid);
+        setProfile(userProfile);
+      } catch (error) {
+        console.error('Error loading nutrition goals:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+        <div className="h-20 bg-gray-200 rounded"></div>
+      </div>
+    );
+  }
 
   // If no calculator data, show prompt to complete calculator
-  if (!profile?.calculatorComplete || !profile?.targetCalories) {
+  if (!profile?.targetCalories) {
     return (
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
         <div className="flex items-start justify-between">
