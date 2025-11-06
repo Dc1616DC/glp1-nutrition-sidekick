@@ -61,6 +61,7 @@ export default function GettingStarted() {
       onClick: () => setShowMedicationForm(true),
       completed: !!profile?.medication,
       primary: !profile?.medication,
+      required: true,
       estimatedTime: '2 minutes'
     },
     {
@@ -71,6 +72,7 @@ export default function GettingStarted() {
       href: '/calculator',
       completed: !!profile?.calculatorComplete,
       primary: !!profile?.medication && !profile?.calculatorComplete,
+      required: true,
       estimatedTime: '3 minutes'
     },
     {
@@ -80,6 +82,8 @@ export default function GettingStarted() {
       icon: '📚',
       href: '/education',
       completed: !!profile?.educationSeen,
+      required: false,
+      badge: 'Recommended',
       estimatedTime: '5 minutes'
     },
     {
@@ -89,13 +93,16 @@ export default function GettingStarted() {
       icon: '🥗',
       href: '/protein-fiber-foods',
       completed: !!profile?.proteinGuideViewed,
+      required: false,
+      badge: 'Optional',
       estimatedTime: '2 minutes'
     }
   ];
 
-  const completedSteps = onboardingSteps.filter(step => step.completed).length;
-  const progressPercentage = (completedSteps / 4) * 100; // Count medication, calculator, education, and protein guide
-  const isOnboardingComplete = completedSteps === 4;
+  const requiredSteps = onboardingSteps.filter(step => step.required);
+  const completedRequiredSteps = requiredSteps.filter(step => step.completed).length;
+  const progressPercentage = (completedRequiredSteps / requiredSteps.length) * 100;
+  const isOnboardingComplete = completedRequiredSteps === requiredSteps.length;
 
   // Simple test function to verify Firebase save
   const testFirebaseSave = async () => {
@@ -206,7 +213,7 @@ export default function GettingStarted() {
                             </h2>
                             <div className="flex items-center gap-3">
                               <span className={`text-sm ${
-                                step.primary && !step.completed ? 'text-blue-100' : 
+                                step.primary && !step.completed ? 'text-blue-100' :
                                 step.completed ? 'text-green-600' : 'text-gray-500'
                               }`}>
                                 {step.estimatedTime}
@@ -214,6 +221,15 @@ export default function GettingStarted() {
                               {step.completed && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                   ✓ Complete
+                                </span>
+                              )}
+                              {!step.completed && step.badge && (
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  step.badge === 'Recommended'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                  {step.badge}
                                 </span>
                               )}
                             </div>
@@ -259,7 +275,7 @@ export default function GettingStarted() {
                           </h2>
                           <div className="flex items-center gap-3">
                             <span className={`text-sm ${
-                              step.primary && !step.completed ? 'text-blue-100' : 
+                              step.primary && !step.completed ? 'text-blue-100' :
                               step.completed ? 'text-green-600' : 'text-gray-500'
                             }`}>
                               {step.estimatedTime}
@@ -267,6 +283,15 @@ export default function GettingStarted() {
                             {step.completed && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 ✓ Complete
+                              </span>
+                            )}
+                            {!step.completed && step.badge && (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                step.badge === 'Recommended'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}>
+                                {step.badge}
                               </span>
                             )}
                           </div>
@@ -299,29 +324,56 @@ export default function GettingStarted() {
 
         {/* Next Steps */}
         {isOnboardingComplete ? (
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-8 text-center text-white">
-            <div className="text-5xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold mb-4">Great job! You're all set up!</h2>
-            <p className="text-green-100 mb-6">
-              Your GLP-1 nutrition foundation is complete. Ready to start optimizing your meals?
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/meal-generator"
-                className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-green-50 transition-colors"
-              >
-                Generate Your First Meal
-              </Link>
-              <button
-                onClick={() => {
-                  // Ensure onboarding flags are set to prevent redirect loops
-                  localStorage.setItem('nutritionOnboardingSeen', 'true');
-                  router.push('/');
-                }}
-                className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:bg-opacity-10 transition-colors"
-              >
-                Go to Dashboard
-              </button>
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-8 text-center text-white">
+              <div className="text-5xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold mb-4">You're ready to get started!</h2>
+              <p className="text-green-100 mb-6">
+                Your nutrition goals are set. Let's generate your first GLP-1 optimized meal!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/meal-generator"
+                  className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-green-50 transition-colors"
+                >
+                  Generate Your First Meal →
+                </Link>
+                <button
+                  onClick={() => {
+                    // Ensure onboarding flags are set to prevent redirect loops
+                    localStorage.setItem('nutritionOnboardingSeen', 'true');
+                    router.push('/');
+                  }}
+                  className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:bg-opacity-10 transition-colors"
+                >
+                  Go to Dashboard
+                </button>
+              </div>
+            </div>
+
+            {/* Continue Learning Section */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-blue-800 mb-3">
+                📚 Continue Learning (Optional)
+              </h3>
+              <p className="text-blue-700 mb-4">
+                Want to learn more about GLP-1 nutrition? These resources will help you understand how to optimize your results.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {onboardingSteps.filter(step => !step.required && !step.completed).map(step => (
+                  <Link
+                    key={step.id}
+                    href={step.href}
+                    className="flex items-center p-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+                  >
+                    <span className="text-2xl mr-3">{step.icon}</span>
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{step.title}</div>
+                      <div className="text-xs text-gray-500">{step.estimatedTime}</div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         ) : (

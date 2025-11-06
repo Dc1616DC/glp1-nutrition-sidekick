@@ -46,10 +46,11 @@ export default function Dashboard() {
     // Handle new user onboarding flow - only redirect if truly needed
     if (user && !loading && profile) {
       const hasSeenOnboarding = localStorage.getItem('nutritionOnboardingSeen');
-      const hasCompletedOnboarding = profile?.medication && profile?.calculatorComplete && profile?.educationSeen && profile?.proteinGuideViewed;
-      
+      // Only require medication and calculator for onboarding completion
+      const hasCompletedOnboarding = profile?.medication && profile?.calculatorComplete;
+
       console.log('Dashboard logic - Complete:', hasCompletedOnboarding, 'Seen:', !!hasSeenOnboarding);
-      
+
       // ONLY redirect if onboarding is incomplete AND user hasn't seen it before
       if (!hasCompletedOnboarding && !hasSeenOnboarding) {
         console.log('Redirecting to getting-started - truly incomplete onboarding');
@@ -344,6 +345,36 @@ export default function Dashboard() {
           <NutritionGoalsWidget />
         </div>
 
+        {/* Generate First Meal CTA - Show for newly onboarded users */}
+        {profile?.calculatorComplete && !localStorage.getItem('hasGeneratedMeal') && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-8 text-white shadow-xl">
+              <div className="flex items-start">
+                <div className="text-4xl mr-4 animate-pulse">🍽️</div>
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold mb-3">
+                    You're all set! Generate your first meal
+                  </h3>
+                  <p className="text-blue-100 mb-4">
+                    Your nutrition goals are ready. Let's create a delicious, GLP-1 optimized meal
+                    tailored to your {profile.targetCalories} calorie target and protein needs.
+                  </p>
+                  <Link
+                    href="/meal-generator"
+                    onClick={() => localStorage.setItem('hasGeneratedMeal', 'true')}
+                    className="inline-flex items-center bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors shadow-md"
+                  >
+                    Generate Your First Meal
+                    <svg className="ml-2 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
@@ -409,48 +440,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Hub Navigation */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Explore Features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Link
-              href="/meals-hub"
-              className="bg-white rounded-lg p-6 hover:shadow-md transition-all border border-gray-200 group"
-            >
-              <div className="text-3xl mb-3">🍽️</div>
-              <h3 className="font-semibold text-gray-900 mb-1">Meals</h3>
-              <p className="text-sm text-gray-600">Plan & prepare</p>
-            </Link>
-            
-            <Link
-              href="/track-hub"
-              className="bg-white rounded-lg p-6 hover:shadow-md transition-all border border-gray-200 group"
-            >
-              <div className="text-3xl mb-3">📝</div>
-              <h3 className="font-semibold text-gray-900 mb-1">Track</h3>
-              <p className="text-sm text-gray-600">Log progress</p>
-            </Link>
-            
-            <Link
-              href="/calculator"
-              className="bg-white rounded-lg p-6 hover:shadow-md transition-all border border-gray-200 group"
-            >
-              <div className="text-3xl mb-3">🎯</div>
-              <h3 className="font-semibold text-gray-900 mb-1">Learn</h3>
-              <p className="text-sm text-gray-600">Goals & education</p>
-            </Link>
-            
-            <Link
-              href="/settings"
-              className="bg-white rounded-lg p-6 hover:shadow-md transition-all border border-gray-200 group"
-            >
-              <div className="text-3xl mb-3">🌙</div>
-              <h3 className="font-semibold text-gray-900 mb-1">Evening Toolkit</h3>
-              <p className="text-sm text-gray-600">Manage cravings & patterns</p>
-            </Link>
           </div>
         </div>
 

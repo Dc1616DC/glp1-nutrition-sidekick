@@ -27,7 +27,7 @@ export default function Navbar() {
     router.push('/');
   };
 
-  // Hub-based navigation structure
+  // Simplified direct navigation structure
   const navHubs = [
     {
       id: 'dashboard',
@@ -37,29 +37,13 @@ export default function Navbar() {
       alwaysShow: true
     },
     {
-      id: 'getting-started',
-      label: hasCompletedOnboarding ? 'Learn & Settings' : 'Getting Started',
-      icon: hasCompletedOnboarding ? '📚' : '🎯',
-      href: hasCompletedOnboarding ? '/settings-education' : '/getting-started',
-      subItems: hasCompletedOnboarding ? [
-        { href: '/education', label: 'Education Resources' },
-        { href: '/protein-fiber-foods', label: 'Protein & Fiber Guide' },
-        { href: '/calculator', label: 'Recalculate Goals' },
-        { href: '/account', label: 'Account Settings' }
-      ] : [
-        { href: '/calculator', label: 'Set Your Goals' },
-        { href: '/education', label: 'Learn GLP-1 Nutrition' },
-        { href: '/protein-fiber-foods', label: 'Protein & Fiber Guide' }
-      ]
-    },
-    {
       id: 'meals',
       label: 'Meals',
       icon: '🍽️',
-      href: '/meals-hub',
+      href: '/meal-generator',
       subItems: [
-        { href: '/meals', label: 'Recipe Library' },
         { href: '/meal-generator', label: 'AI Meal Generator' },
+        { href: '/meals', label: 'Recipe Library' },
         { href: '/cookbook', label: 'My Cookbook' },
         { href: '/shopping-list', label: 'Shopping Lists' }
       ]
@@ -68,11 +52,33 @@ export default function Navbar() {
       id: 'track',
       label: 'Track',
       icon: '📝',
-      href: '/track-hub',
+      href: '/meal-log',
       subItems: [
         { href: '/meal-log', label: 'Meal Logger' },
         { href: '/symptoms', label: 'Symptom Tracker' },
         { href: '/reminders', label: 'Meal Reminders' }
+      ]
+    },
+    {
+      id: 'learn',
+      label: 'Learn',
+      icon: '📚',
+      href: '/education',
+      subItems: [
+        { href: '/education', label: 'GLP-1 Education' },
+        { href: '/protein-fiber-foods', label: 'Protein & Fiber Guide' },
+        { href: '/calculator', label: 'Nutrition Goals' }
+      ]
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: '⚙️',
+      href: '/settings',
+      subItems: [
+        { href: '/account', label: 'Account' },
+        { href: '/reminders', label: 'Reminders' },
+        { href: '/settings', label: 'Preferences' }
       ]
     }
   ];
