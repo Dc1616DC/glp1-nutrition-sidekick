@@ -217,13 +217,15 @@ export default function MealLogPage() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen">
       {showOnboarding && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <MealCommitmentOnboarding 
-            onComplete={handleOnboardingComplete}
-            onSkip={handleOnboardingComplete}
-          />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="w-full flex items-center justify-center min-h-full py-8">
+            <MealCommitmentOnboarding
+              onComplete={handleOnboardingComplete}
+              onSkip={handleOnboardingComplete}
+            />
+          </div>
         </div>
       )}
 

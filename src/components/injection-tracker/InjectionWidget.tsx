@@ -113,7 +113,18 @@ export default function InjectionWidget() {
         {lastInjection && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <div className="flex justify-between text-xs text-gray-500">
-              <span>Next due: {medicationInfo.frequency === 'daily' ? 'Tomorrow' : `${7 - daysSinceInjection} days`}</span>
+              <span>Next due: {(() => {
+                if (medicationInfo.frequency === 'daily') {
+                  if (daysSinceInjection === 0) return 'Tomorrow';
+                  if (daysSinceInjection >= 1) return 'Overdue';
+                  return 'Tomorrow';
+                }
+                // Weekly medications
+                const daysUntilNext = 7 - daysSinceInjection;
+                if (daysUntilNext <= 0) return 'Overdue';
+                if (daysUntilNext === 1) return 'Tomorrow';
+                return `In ${daysUntilNext} days`;
+              })()}</span>
               <span>Adherence: {injectionService.getInjectionPattern().adherenceRate || 'N/A'}</span>
             </div>
           </div>
