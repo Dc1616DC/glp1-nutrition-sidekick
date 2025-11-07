@@ -161,6 +161,12 @@ export default function Navbar() {
 
             {/* User Menu */}
             <div className="ml-4 flex items-center space-x-3">
+              <Link
+                href="/pricing"
+                className="bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-2 rounded-md text-sm font-semibold hover:from-blue-700 hover:to-green-700 transition-colors"
+              >
+                Pricing
+              </Link>
               {user ? (
                 <>
                   <span className="text-sm text-gray-600">
@@ -266,6 +272,13 @@ export default function Navbar() {
 
             {/* Mobile User Section */}
             <div className="border-t border-gray-200 pt-3 mt-3">
+              <Link
+                href="/pricing"
+                onClick={() => setIsOpen(false)}
+                className="block px-3 py-2 mb-2 text-center bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-md font-semibold"
+              >
+                Pricing
+              </Link>
               {user ? (
                 <>
                   <div className="px-3 py-2 text-sm text-gray-600">

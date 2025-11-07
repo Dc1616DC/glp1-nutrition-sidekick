@@ -27,7 +27,7 @@ export interface UsageStats {
 }
 
 class SubscriptionService {
-  private readonly FREE_MEAL_LIMIT = 0; // No AI meal generations for free users
+  private readonly FREE_MEAL_LIMIT = 5; // 5 free AI meal generations per month
   private readonly PREMIUM_MEAL_LIMIT = 999999; // Unlimited for premium users
 
   /**

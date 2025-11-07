@@ -15,6 +15,8 @@ import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
 import ErrorBoundary from "../components/ErrorBoundary";
 // Enhanced onboarding experience
 import EnhancedOnboardingWrapper from "../components/onboarding/EnhancedOnboardingWrapper";
+// Analytics
+import GoogleAnalytics from "../components/GoogleAnalytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -73,6 +75,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        {/* Google Analytics */}
+        <GoogleAnalytics />
+
         {/* Provide authentication context to the entire app */}
         <AuthProvider>
           <ServiceWorkerRegistration />
