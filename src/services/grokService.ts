@@ -280,25 +280,137 @@ Return as JSON with this structure:
    * Build chef-inspired prompt for appealing GLP-1 recipes
    */
   private buildChefInspiredPrompt(preferences: EnhancedMealPreferences): string {
-    const restrictions = preferences.dietaryRestrictions?.length > 0 
-      ? preferences.dietaryRestrictions.join(', ') 
+    const restrictions = preferences.dietaryRestrictions?.length > 0
+      ? preferences.dietaryRestrictions.join(', ')
       : 'none';
-    
-    const allergiesText = preferences.allergies?.length 
+
+    const allergiesText = preferences.allergies?.length
       ? `STRICTLY AVOID ALL ALLERGENS: ${preferences.allergies.join(', ')}. Double-check every ingredient.`
       : '';
-    
+
     const assemblyRatio = preferences.assemblyToRecipeRatio || 60;
     const symptomEnhancement = preferences.symptomEnhancement || '';
-    
-    const availableIngredientsText = preferences.availableIngredients?.length 
+
+    const availableIngredientsText = preferences.availableIngredients?.length
       ? `PRIORITIZE THESE AVAILABLE INGREDIENTS: ${preferences.availableIngredients.join(', ')}. Focus on using as many of these as possible to reduce food waste and utilize what's already on hand.`
       : '';
-    
-    const specificMealText = preferences.specificMeal 
+
+    const specificMealText = preferences.specificMeal
       ? `SPECIFIC MEAL REQUEST: Create versions of "${preferences.specificMeal}" that meet all GLP-1 requirements. Focus specifically on this meal type, but make it chef-inspired and appealing.`
       : '';
 
+    // Snack-specific logic - different requirements for snacks vs meals
+    const isSnack = preferences.mealType === 'snack';
+
+    if (isSnack) {
+      return `
+As a popular chef specializing in GLP-1-friendly snacks, ${preferences.specificMeal ? `create ${preferences.numOptions || 2} delicious versions of "${preferences.specificMeal}"` : `create ${preferences.numOptions || 2} quick and satisfying snack options`} that are perfect for between-meal hunger.
+
+${allergiesText}
+
+${symptomEnhancement}
+
+${availableIngredientsText}
+
+${specificMealText}
+
+CHEF'S MISSION: Create simple, grab-and-go snacks that satisfy hunger without overwhelming GLP-1 users.
+
+SNACK FOCUS:
+- 100% Quick Assemblies: No cooking required, ready in 5-10 minutes
+- Emphasis on convenience and portability
+- Simple ingredient combinations that taste great together
+
+CRITICAL GLP-1 SNACK REQUIREMENTS (ALL SNACKS MUST MEET):
+- Protein: 8-15g per serving (sufficient for satiety without heaviness)
+- Fiber: 2-5g per serving (aids digestion)
+- Calories: 100-250 per serving (appropriate snack size)
+- Maximum 10 minutes prep time (ideally 5 minutes or less)
+- NO cooking required - only assembly
+- LOW glycemic ingredients only
+- Focus on: Portability, convenience, satisfaction
+
+DIETARY RESTRICTIONS: ${restrictions}
+
+SNACK NAMING EXAMPLES (make yours similar):
+- "Protein-Packed Greek Yogurt Parfait" (not "yogurt and berries")
+- "Crunchy Almond & String Cheese Duo" (not "cheese and nuts")
+- "Apple Slices with Almond Butter Drizzle" (not "apple and peanut butter")
+- "Hummus & Veggie Crunch Pack" (not "vegetables and hummus")
+- "Trail Mix Power Boost" (not "mixed nuts")
+
+SNACK SATISFACTION FACTORS:
+- Crunchy textures for satisfying munching
+- Sweet & savory balance
+- Portion-controlled but not skimpy
+- Easy to eat slowly
+- No mess, portable
+
+QUICK SNACK IDEAS TO INSPIRE:
+- Greek yogurt with berries and nuts
+- String cheese with whole grain crackers
+- Apple slices with nut butter
+- Hard-boiled eggs with veggies
+- Cottage cheese with fruit
+- Protein bars (quality brands)
+- Hummus with raw vegetables
+- Mixed nuts and dried fruit (controlled portions)
+- Turkey roll-ups with cheese
+- Edamame with sea salt
+
+OUTPUT FORMAT (JSON):
+{
+  "recipes": [
+    {
+      "title": "Appealing Snack Name",
+      "type": "quick-assembly",
+      "appealingClassification": "e.g., Protein-Packed Power Snack",
+      "servings": 1,
+      "cookingTime": 0,
+      "prepTime": 5-10,
+      "difficulty": "easy",
+      "ingredients": [
+        "1/2 cup plain Greek yogurt (2% fat)",
+        "1/4 cup fresh blueberries",
+        "2 tablespoons sliced almonds",
+        "1 teaspoon honey (optional)"
+      ],
+      "instructions": [
+        "Simple assembly steps",
+        "Tips for best texture and flavor"
+      ],
+      "assemblySteps": [
+        "Layer ingredients in a bowl or jar",
+        "Serve immediately or prep ahead"
+      ],
+      "chefTips": [
+        "Make it portable by using a mason jar",
+        "Prep ingredients night before for grab-and-go"
+      ],
+      "satisfactionFactors": [
+        "Creamy and crunchy texture contrast",
+        "Natural sweetness from berries",
+        "Filling protein from yogurt"
+      ],
+      "glp1Benefits": "Perfect snack size that won't trigger nausea, high protein keeps you satisfied",
+      "mealPrepFriendly": true,
+      "estimatedNutrition": {
+        "protein": 12,
+        "fiber": 3,
+        "calories": 180,
+        "carbs": 15,
+        "fat": 8
+      },
+      "tags": ["GLP-1 Friendly", "High Protein", "Quick", "No Cooking", "Portable"]
+    }
+  ]
+}
+
+Make every snack sound delicious and feel satisfying while being appropriately sized for GLP-1 users!
+`;
+    }
+
+    // Standard meal logic (breakfast, lunch, dinner)
     return `
 As a popular chef specializing in GLP-1-friendly meals, ${preferences.specificMeal ? `create ${preferences.numOptions || 2} delicious versions of "${preferences.specificMeal}"` : `create ${preferences.numOptions || 2} appealing ${preferences.mealType} options`} that make eating enough feel enjoyable and satisfying.
 
