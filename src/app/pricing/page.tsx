@@ -3,10 +3,70 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function PricingPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubscribe = async (planType: 'monthly' | 'annual') => {
+    if (!user) {
+      router.push('/signin?redirect=/pricing');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      // Get Firebase ID token
+      const idToken = await user.getIdToken();
+
+      // Get Stripe price ID from environment variables
+      const priceId = planType === 'monthly'
+        ? process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID
+        : process.env.NEXT_PUBLIC_STRIPE_ANNUAL_PRICE_ID;
+
+      if (!priceId) {
+        throw new Error('Stripe price ID not configured. Please contact support.');
+      }
+
+      // Create checkout session
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          priceId,
+          planType,
+          email: user.email
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create checkout session');
+      }
+
+      // Redirect to Stripe checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+
+    } catch (err) {
+      console.error('Subscription error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
+      setLoading(false);
+    }
+  };
 
   const plans = [
     {
@@ -28,15 +88,19 @@ export default function PricingPage() {
         'No shopping lists',
         'No meal reminders'
       ],
-      cta: 'Current Plan',
-      ctaStyle: 'bg-gray-200 text-gray-700 cursor-default',
-      popular: false
+      cta: user ? 'Current Plan' : 'Get Started Free',
+      ctaLink: user ? null : '/signup',
+      ctaStyle: user
+        ? 'bg-gray-200 text-gray-700 cursor-default'
+        : 'bg-blue-600 text-white hover:bg-blue-700',
+      popular: false,
+      planType: null
     },
     {
       name: 'Premium',
       price: billingCycle === 'monthly' ? 9.99 : 99.99,
       billingCycle: billingCycle,
-      savings: billingCycle === 'annual' ? '$19.89/year (17% off)' : null,
+      savings: billingCycle === 'annual' ? 'Save $19.89/year (17% off)' : null,
       description: 'Everything you need for GLP-1 success',
       features: [
         '✨ Unlimited AI meal generations',
@@ -51,9 +115,11 @@ export default function PricingPage() {
         '🔔 Priority support'
       ],
       limitations: [],
-      cta: 'Coming Soon',
+      cta: user ? 'Subscribe Now' : 'Sign Up to Subscribe',
+      ctaLink: user ? null : '/signup',
       ctaStyle: 'bg-gradient-to-r from-blue-600 to-green-600 text-white hover:from-blue-700 hover:to-green-700',
-      popular: true
+      popular: true,
+      planType: billingCycle
     }
   ];
 
@@ -70,26 +136,35 @@ export default function PricingPage() {
           </p>
         </div>
 
+        {/* Error Message */}
+        {error && (
+          <div className="max-w-2xl mx-auto mb-8 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
         {/* Billing Toggle */}
         <div className="flex justify-center mb-12">
           <div className="bg-white rounded-lg shadow-md p-1 inline-flex">
             <button
               onClick={() => setBillingCycle('monthly')}
+              disabled={loading}
               className={`px-6 py-2 rounded-md font-medium transition-colors ${
                 billingCycle === 'monthly'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBillingCycle('annual')}
+              disabled={loading}
               className={`px-6 py-2 rounded-md font-medium transition-colors ${
                 billingCycle === 'annual'
                   ? 'bg-blue-600 text-white'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Annual
               <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
@@ -135,12 +210,31 @@ export default function PricingPage() {
                 </div>
 
                 {/* CTA Button */}
-                <button
-                  disabled={plan.cta === 'Current Plan'}
-                  className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors mb-6 ${plan.ctaStyle}`}
-                >
-                  {plan.cta}
-                </button>
+                {plan.ctaLink ? (
+                  <Link
+                    href={plan.ctaLink}
+                    className={`block w-full py-3 px-6 rounded-lg font-semibold transition-colors mb-6 text-center ${plan.ctaStyle}`}
+                  >
+                    {plan.cta}
+                  </Link>
+                ) : plan.planType ? (
+                  <button
+                    onClick={() => handleSubscribe(plan.planType as 'monthly' | 'annual')}
+                    disabled={loading}
+                    className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors mb-6 ${plan.ctaStyle} ${
+                      loading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {loading ? 'Processing...' : plan.cta}
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors mb-6 ${plan.ctaStyle}`}
+                  >
+                    {plan.cta}
+                  </button>
+                )}
 
                 {/* Features */}
                 <div className="space-y-3 mb-6">
@@ -198,28 +292,12 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* Coming Soon Notice */}
-        <div className="mt-12 bg-blue-50 border border-blue-200 rounded-xl p-6 max-w-3xl mx-auto">
-          <div className="flex items-start">
-            <div className="text-3xl mr-4">🚀</div>
-            <div>
-              <h3 className="font-semibold text-blue-900 mb-2">
-                Premium Launching Soon!
-              </h3>
-              <p className="text-blue-700 mb-4">
-                We're putting the finishing touches on our premium features. Sign up for the free plan now and
-                we'll notify you when premium launches. Early adopters will get special pricing!
-              </p>
-              {!user && (
-                <Link
-                  href="/signup"
-                  className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Get Started Free
-                </Link>
-              )}
-            </div>
-          </div>
+        {/* Security Badge */}
+        <div className="mt-8 flex justify-center items-center gap-2 text-sm text-gray-500">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          <span>Secure payment processing powered by Stripe</span>
         </div>
 
         {/* FAQ Section */}
@@ -234,7 +312,7 @@ export default function PricingPage() {
               </h3>
               <p className="text-gray-600">
                 You can still access the recipe library, calculator, and education resources.
-                Your limit resets every month, or you can upgrade to Premium for unlimited generations.
+                Your limit resets on the 1st of every month, or you can upgrade to Premium for unlimited generations.
               </p>
             </div>
 
@@ -243,17 +321,16 @@ export default function PricingPage() {
                 Can I cancel anytime?
               </h3>
               <p className="text-gray-600">
-                Yes! When premium launches, you'll be able to cancel anytime with no questions asked.
-                You'll keep access until the end of your billing period.
+                Yes! You can cancel anytime with no questions asked. You'll keep access until the end of your billing period.
               </p>
             </div>
 
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="font-semibold text-gray-900 mb-2">
-                Will there be a free trial?
+                What payment methods do you accept?
               </h3>
               <p className="text-gray-600">
-                Yes! Premium will include a 7-day free trial so you can test all features before committing.
+                We accept all major credit cards (Visa, Mastercard, American Express, Discover) through our secure payment processor, Stripe.
               </p>
             </div>
 
@@ -264,6 +341,16 @@ export default function PricingPage() {
               <p className="text-gray-600">
                 Our app supports Ozempic, Wegovy, Mounjaro, Zepbound, Saxenda, and Victoza.
                 The meal recommendations are optimized for all GLP-1 medications.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="font-semibold text-gray-900 mb-2">
+                Do you offer refunds?
+              </h3>
+              <p className="text-gray-600">
+                We don't offer refunds for partial months, but you can cancel at any time to prevent future charges.
+                Contact support if you have special circumstances.
               </p>
             </div>
           </div>
