@@ -1,26 +1,45 @@
 import Stripe from 'stripe';
 
-// Server-side Stripe instance
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
+// Lazy-loaded Stripe instance to avoid build-time errors
+let stripeInstance: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripeInstance) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
+    }
+
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: '2024-12-18.acacia',
+      typescript: true,
+    });
+  }
+
+  return stripeInstance;
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia',
-  typescript: true,
+// Export getter function instead of instance
+export const stripe = new Proxy({} as Stripe, {
+  get: (target, prop) => {
+    const instance = getStripe();
+    const value = instance[prop as keyof Stripe];
+    return typeof value === 'function' ? value.bind(instance) : value;
+  }
 });
 
 // Stripe pricing configuration
 export const STRIPE_PLANS = {
   MONTHLY: {
     priceId: process.env.STRIPE_MONTHLY_PRICE_ID || '',
-    price: 9.99,
+    price: 19.99,
     interval: 'month' as const,
     name: 'Monthly Premium'
   },
   ANNUAL: {
     priceId: process.env.STRIPE_ANNUAL_PRICE_ID || '',
-    price: 99.99,
+    price: 199.99,
     interval: 'year' as const,
     name: 'Annual Premium'
   }
