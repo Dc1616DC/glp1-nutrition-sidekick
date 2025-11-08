@@ -98,9 +98,9 @@ export default function PricingPage() {
     },
     {
       name: 'Premium',
-      price: billingCycle === 'monthly' ? 9.99 : 99.99,
+      price: billingCycle === 'monthly' ? 19.99 : 199.99,
       billingCycle: billingCycle,
-      savings: billingCycle === 'annual' ? 'Save $19.89/year (17% off)' : null,
+      savings: billingCycle === 'annual' ? 'Save $39.89/year (17% off)' : null,
       description: 'Everything you need for GLP-1 success',
       features: [
         '✨ Unlimited AI meal generations',

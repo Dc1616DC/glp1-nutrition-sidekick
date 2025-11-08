@@ -5,7 +5,7 @@ This guide will walk you through setting up Stripe for your GLP-1 Nutrition Side
 ## Overview
 
 The Stripe integration allows you to:
-- Accept monthly ($9.99/month) and annual ($99.99/year) subscriptions
+- Accept monthly ($19.99/month) and annual ($199.99/year) subscriptions
 - Automatically upgrade users to Premium when they subscribe
 - Handle subscription renewals, cancellations, and payment failures
 - Track subscription status in Firestore
@@ -32,7 +32,7 @@ Go to https://dashboard.stripe.com
    - **Name**: GLP-1 Nutrition Sidekick - Monthly Premium
    - **Description**: Unlimited AI meal generations, advanced tracking, and premium features
    - **Pricing model**: Standard pricing
-   - **Price**: $9.99
+   - **Price**: $19.99
    - **Billing period**: Monthly (recurring every 1 month)
 4. Click **Save product**
 5. **COPY THE PRICE ID** (starts with `price_...`) - you'll need this!
@@ -43,7 +43,7 @@ Go to https://dashboard.stripe.com
    - **Name**: GLP-1 Nutrition Sidekick - Annual Premium
    - **Description**: Unlimited AI meal generations, advanced tracking, and premium features (Save 17%)
    - **Pricing model**: Standard pricing
-   - **Price**: $99.99
+   - **Price**: $199.99
    - **Billing period**: Yearly (recurring every 12 months)
 3. Click **Save product**
 4. **COPY THE PRICE ID** (starts with `price_...`) - you'll need this!

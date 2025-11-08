@@ -91,7 +91,7 @@ export default function TermsOfServicePage() {
               <li>Unlimited AI meal generations</li>
               <li>Full access to meal logging, symptom tracking, shopping lists</li>
               <li>Advanced analytics and insights</li>
-              <li>Pricing: $9.99/month or $99.99/year (billed annually)</li>
+              <li>Pricing: $19.99/month or $199.99/year (billed annually)</li>
             </ul>
 
             <h3 className="text-xl font-semibold text-gray-800 mb-3">5.3 Payment Terms</h3>
