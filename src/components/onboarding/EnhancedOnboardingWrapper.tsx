@@ -10,8 +10,6 @@ interface Props {
 export default function EnhancedOnboardingWrapper({ children }: Props) {
   const [showEducation, setShowEducation] = useState(false);
 
-  // Simplified wrapper - just provides education access
-  // Main onboarding flow handled by /getting-started page
   return (
     <div className="min-h-screen bg-gray-50">
       {showEducation ? (
@@ -26,8 +24,6 @@ export default function EnhancedOnboardingWrapper({ children }: Props) {
       ) : (
         <>
           {children}
-
-          {/* Education Access Button */}
           <div className="fixed bottom-4 right-4 z-50">
             <button
               onClick={() => setShowEducation(true)}
