@@ -15,6 +15,10 @@ import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
 import ErrorBoundary from "../components/ErrorBoundary";
 // Enhanced onboarding experience
 import EnhancedOnboardingWrapper from "../components/onboarding/EnhancedOnboardingWrapper";
+// Analytics
+import GoogleAnalytics from "../components/GoogleAnalytics";
+// Footer with legal links
+import Footer from "../components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -71,19 +75,23 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
+        {/* Google Analytics */}
+        <GoogleAnalytics />
+
         {/* Provide authentication context to the entire app */}
         <AuthProvider>
           <ServiceWorkerRegistration />
           <PWAStatus />
           <EnhancedOnboardingWrapper>
             <Navbar />
-            <main className="mx-auto max-w-7xl p-4">
+            <main className="mx-auto max-w-7xl p-4 flex-grow">
               <ErrorBoundary>
                 {children}
               </ErrorBoundary>
             </main>
+            <Footer />
             <PWAInstallPrompt />
           </EnhancedOnboardingWrapper>
         </AuthProvider>

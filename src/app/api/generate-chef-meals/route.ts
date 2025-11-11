@@ -1,12 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GrokService } from '../../../services/grokService';
+import { subscriptionService } from '../../../services/subscriptionService';
+import { verifyIdToken, isAdminInitialized } from '../../../lib/firebase-admin';
 
 const grokService = new GrokService();
 
+/**
+ * Verify user authentication
+ */
+async function verifyUser(request: NextRequest): Promise<string | null> {
+  const authHeader = request.headers.get('authorization');
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authHeader.split('Bearer ')[1];
+
+  if (isAdminInitialized()) {
+    try {
+      const decodedToken = await verifyIdToken(token);
+      return decodedToken.uid;
+    } catch (error) {
+      console.error('Firebase token verification failed:', error);
+      return null;
+    }
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    // Verify user authentication
+    const userId = await verifyUser(request);
+
+    if (!userId) {
+      return NextResponse.json({
+        error: 'Authentication required',
+        message: 'Please sign in to access AI meal generation.',
+        upgradeUrl: '/pricing',
+        feature: 'ai_meal_generation'
+      }, { status: 401 });
+    }
+
+    // Check usage limits (enforces 5 free meals/month for free users)
+    const usageStats = await subscriptionService.getUsageStats(userId);
+
+    if (!usageStats.canGenerate) {
+      return NextResponse.json({
+        error: 'Meal generation limit reached',
+        message: `You've used all ${usageStats.mealGenerationsLimit} free meal generations this month. Upgrade to Premium for unlimited AI meal generation.`,
+        upgradeUrl: '/pricing',
+        feature: 'ai_meal_generation',
+        usageStats: {
+          used: usageStats.mealGenerationsUsed,
+          limit: usageStats.mealGenerationsLimit,
+          resetDate: usageStats.resetDate,
+          daysUntilReset: usageStats.daysUntilReset
+        }
+      }, { status: 403 });
+    }
+
     const requestBody = await request.json();
-    
+
     console.log('\n=== GENERATING CHEF-INSPIRED MEALS WITH GROK ===');
     console.log('Request params:', {
       mealType: requestBody.mealType,
@@ -32,8 +89,11 @@ export async function POST(request: NextRequest) {
     // Generate chef-inspired meals
     const meals = await grokService.generateGLP1Recipes(enhancedPreferences);
 
+    // Increment usage counter AFTER successful generation
+    const usageResult = await subscriptionService.useMealGeneration(userId);
+
     console.log(`✅ Generated ${meals.length} chef-inspired meals`);
-    
+
     // Return meals with appealing presentation
     return NextResponse.json({
       meals: meals.map(meal => ({
@@ -51,7 +111,7 @@ export async function POST(request: NextRequest) {
           carbs: meal.nutritionTotals.carbs,
           fat: meal.nutritionTotals.fat
         },
-        ingredients: meal.ingredients.map(ing => 
+        ingredients: meal.ingredients.map(ing =>
           typeof ing === 'string' ? ing : `${ing.amount} ${ing.unit} ${ing.name}`.trim()
         ),
         instructions: meal.instructions,
@@ -69,12 +129,18 @@ export async function POST(request: NextRequest) {
           friendly: meal.mealPrepFriendly || false
         },
         nutritionSource: 'Grok AI Chef-Inspired'
-      }))
+      })),
+      usageStats: {
+        used: usageResult.usageStats.mealGenerationsUsed,
+        remaining: usageResult.usageStats.mealGenerationsRemaining,
+        limit: usageResult.usageStats.mealGenerationsLimit,
+        resetDate: usageResult.usageStats.resetDate
+      }
     });
 
   } catch (error) {
     console.error('Error generating chef-inspired meals:', error);
-    
+
     // Fallback to appealing mock meal
     const fallbackMeal = {
       id: `chef_fallback_${Date.now()}`,
@@ -114,7 +180,7 @@ export async function POST(request: NextRequest) {
       ],
       satisfaction_factors: [
         "Creamy yogurt base",
-        "Crunchy nuts and granola", 
+        "Crunchy nuts and granola",
         "Sweet berry bursts",
         "Fresh mint aroma"
       ],
@@ -136,8 +202,19 @@ export async function POST(request: NextRequest) {
 }
 
 // Enhanced meal endpoint for "Add Flavorful Twists"
+// NOTE: This does NOT count as a meal generation - it's an enhancement of an already generated meal
 export async function PATCH(request: NextRequest) {
   try {
+    // Verify user authentication (but don't check limits for enhancements)
+    const userId = await verifyUser(request);
+
+    if (!userId) {
+      return NextResponse.json({
+        error: 'Authentication required',
+        message: 'Please sign in to enhance meals.'
+      }, { status: 401 });
+    }
+
     const requestBody = await request.json();
     const { mealId, originalMeal, preferences } = requestBody;
 
@@ -176,7 +253,7 @@ export async function PATCH(request: NextRequest) {
 
     // Enhance with flavorful twists
     const enhancedMeal = await grokService.enhanceWithFlavorfulTwists(
-      recipeToEnhance, 
+      recipeToEnhance,
       enhancedPreferences
     );
 
@@ -193,7 +270,7 @@ export async function PATCH(request: NextRequest) {
         prepTime: 5,
         servings: enhancedMeal.servings,
         nutrition: enhancedMeal.nutritionTotals,
-        ingredients: enhancedMeal.ingredients.map(ing => 
+        ingredients: enhancedMeal.ingredients.map(ing =>
           typeof ing === 'string' ? ing : `${ing.amount} ${ing.unit} ${ing.name}`.trim()
         ),
         instructions: enhancedMeal.instructions,
@@ -209,7 +286,7 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     console.error('Error enhancing meal:', error);
-    
+
     return NextResponse.json({
       error: 'Failed to enhance meal',
       message: error instanceof Error ? error.message : 'Enhancement service temporarily unavailable'

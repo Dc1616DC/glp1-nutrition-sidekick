@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   try {
     // Verify user authentication
     const userId = await verifyUser(request);
-    
+
     if (!userId) {
       return NextResponse.json({
         error: 'Authentication required',
@@ -70,15 +70,22 @@ export async function POST(request: NextRequest) {
         feature: 'ai_meal_generation'
       }, { status: 401 });
     }
-    
-    // Check if user has premium access for AI meal generation
-    const hasPremiumAccess = await subscriptionService.hasPremiumAccess(userId);
-    if (!hasPremiumAccess) {
+
+    // Check usage limits (enforces 5 free meals/month for free users)
+    const usageStats = await subscriptionService.getUsageStats(userId);
+
+    if (!usageStats.canGenerate) {
       return NextResponse.json({
-        error: 'Premium subscription required',
-        message: 'AI meal generation is available for premium subscribers only.',
+        error: 'Meal generation limit reached',
+        message: `You've used all ${usageStats.mealGenerationsLimit} free meal generations this month. Upgrade to Premium for unlimited AI meal generation.`,
         upgradeUrl: '/pricing',
-        feature: 'ai_meal_generation'
+        feature: 'ai_meal_generation',
+        usageStats: {
+          used: usageStats.mealGenerationsUsed,
+          limit: usageStats.mealGenerationsLimit,
+          resetDate: usageStats.resetDate,
+          daysUntilReset: usageStats.daysUntilReset
+        }
       }, { status: 403 });
     }
 
@@ -141,16 +148,25 @@ export async function POST(request: NextRequest) {
         creativityLevel: mealParams.creativityLevel || 'flavorful-twists',
         assemblyToRecipeRatio: mealParams.assemblyToRecipeRatio || 0.6
       });
-      
+
+      // Increment usage counter AFTER successful generation
+      const usageResult = await subscriptionService.useMealGeneration(userId);
+
       const duration = Date.now() - startTime;
-      
+
       return NextResponse.json({
         success: true,
         meals: meals,
         generationMethod: 'grok',
         cacheStatus: 'fresh',
         duration,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        usageStats: {
+          used: usageResult.usageStats.mealGenerationsUsed,
+          remaining: usageResult.usageStats.mealGenerationsRemaining,
+          limit: usageResult.usageStats.mealGenerationsLimit,
+          resetDate: usageResult.usageStats.resetDate
+        }
       });
       
     } catch (generationError) {

@@ -142,12 +142,31 @@ export default function CalculatorPage() {
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
           Calculate your personalized calorie and protein targets optimized for GLP-1 medication success
         </p>
+
+        {/* Update Reminder Banner */}
+        {results && !isEditing && (
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-2xl mx-auto">
+            <div className="flex items-start">
+              <span className="text-2xl mr-3">💡</span>
+              <div className="flex-1 text-left">
+                <p className="text-sm font-medium text-blue-900 mb-1">
+                  Tip: Update your goals as your weight changes
+                </p>
+                <p className="text-sm text-blue-700">
+                  As you lose weight on your GLP-1 journey, your calorie and protein needs will change.
+                  Recalculate every 5-10 lbs of weight loss for optimal results.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {results && !isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="mt-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
-            ✏️ Edit Your Information
+            ✏️ Update My Information
           </button>
         )}
       </div>

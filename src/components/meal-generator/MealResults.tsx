@@ -90,7 +90,7 @@ export default function MealResults({
         </div>
       </div>
 
-      {/* Injection Context Warnings */}
+      {/* Meal context warnings (disabled) */}
       <MealContextWarnings mealType={meals[0]?.mealType} />
 
       <div className="flex justify-between items-center mb-4">
