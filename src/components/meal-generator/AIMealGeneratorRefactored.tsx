@@ -20,7 +20,6 @@ import { MealPreferences as MealPreferencesType, GeneratedMeal } from '../../typ
 import { clientNutritionService } from '../../services/clientNutritionService';
 import { savedMealsService } from '../../services/savedMealsService';
 import { shoppingListService } from '../../services/shoppingListService';
-import { grokService } from '../../services/grokService';
 
 // Constants for symptom labels
 const SYMPTOM_LABELS: { [key: string]: { label: string } } = {
@@ -124,24 +123,38 @@ export default function AIMealGeneratorRefactored({ suggestedMeal, symptom }: AI
 
     setIsGettingAISuggestion(true);
     try {
-      // Get meal suggestion from Firebase Functions
-      const response = await grokService.getPersonalizedMealSuggestionFromAI(
-        'Semaglutide', // Could be fetched from user profile
-        {
-          dietaryRestrictions: preferences.dietaryRestrictions,
-          preferences: preferences.cuisinePreferences || [],
-          experience: 'experienced' // Could be from user profile
-        }
-      );
+      // Get Firebase ID token for authentication
+      const idToken = await user.getIdToken();
 
-      setAiSuggestion(response.suggestions);
-      
+      // Call the API endpoint instead of using the service directly
+      const response = await fetch('/api/generate-chef-meals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          mealType: preferences.mealType || 'lunch',
+          dietaryRestrictions: preferences.dietaryRestrictions || [],
+          cuisinePreferences: preferences.cuisinePreferences || [],
+          numOptions: 2
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to get AI suggestions');
+      }
+
+      const data = await response.json();
+      setAiSuggestion(data.suggestions || 'AI meal suggestions generated!');
+
       // Switch to the appropriate tab or scroll to show the suggestion
       setActiveTab('generator');
-      
+
     } catch (error) {
       console.error('Error getting AI meal suggestion:', error);
-      alert('Failed to get AI suggestions. Please try again.');
+      alert(error instanceof Error ? error.message : 'Failed to get AI suggestions. Please try again.');
     } finally {
       setIsGettingAISuggestion(false);
     }
